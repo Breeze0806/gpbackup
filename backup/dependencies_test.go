@@ -37,6 +37,7 @@ var _ = Describe("backup/dependencies tests", func() {
 			Expect(relations[2].FQN()).To(Equal("public.relation3"))
 		})
 		It("sorts the slice correctly if there is an object dependent on one other object", func() {
+			// relation1 depends on relation3
 			depMap[backup.UniqueID{ClassID: backup.PG_CLASS_OID, Oid: 1}] = map[backup.UniqueID]bool{{ClassID: backup.PG_CLASS_OID, Oid: 3}: true}
 			relations := []backup.Sortable{relation1, relation2, relation3}
 

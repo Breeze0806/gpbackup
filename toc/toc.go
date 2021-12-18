@@ -98,6 +98,15 @@ type StatementWithType struct {
 	Statement       string
 }
 
+func (s StatementWithType) TypeIsEqual(statement StatementWithType) bool {
+	if s.Schema == statement.Schema && 
+		 s.Name == statement.Name && 
+		 s.ObjectType == statement.ObjectType &&
+		 s.ReferenceObject == statement.ReferenceObject {
+			 return true
+		 }
+		 return false
+}
 func GetIncludedPartitionRoots(tocDataEntries []MasterDataEntry, includeRelations []string) []string {
 	if len(includeRelations) == 0 {
 		return []string{}

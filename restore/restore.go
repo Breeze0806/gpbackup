@@ -290,14 +290,19 @@ func restorePredata(metadataFilename string) {
 	editStatementsRedirectSchema(statements, opts.RedirectSchema)
 	progressBar := utils.NewProgressBar(len(schemaStatements)+len(statements), "Pre-data objects restored: ", utils.PB_VERBOSE)
 	progressBar.Start()
-
+	var numErrors int32
 	RestoreSchemas(schemaStatements, progressBar)
-	numErrors := ExecuteRestoreMetadataStatements(statements, "Pre-data objects", progressBar, utils.PB_VERBOSE, false)
+	numRetries := 5
+	if MustGetFlagInt(options.JOBS) > 1 {
+		numErrors = ExecutePreDataStatements(statements, progressBar, numRetries)
+	} else {
+		numErrors = ExecuteStatements(statements, progressBar, false)
+	}
 
 	progressBar.Finish()
 	if wasTerminated {
 		gplog.Info("Pre-data metadata restore incomplete")
-	} else if numErrors > 0 {
+	} else if numErrors > 0 && numRetries == 0 {
 		gplog.Info("Pre-data metadata restore completed with failures")
 	} else {
 		gplog.Info("Pre-data metadata restore complete")

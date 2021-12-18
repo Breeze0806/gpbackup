@@ -225,7 +225,7 @@ END AS string;`, utils.EscapeSingleQuotes(unquotedDBName))
 }
 
 func ValidateBackupFlagCombinations() {
-	if backupConfig.SingleDataFile && MustGetFlagInt(options.JOBS) != 1 {
+	if backupConfig.SingleDataFile && MustGetFlagInt(options.JOBS) != 1 && !FlagChanged(options.METADATA_ONLY)  {
 		gplog.Fatal(errors.Errorf("Cannot use jobs flag when restoring backups with a single data file per segment."), "")
 	}
 	if (backupConfig.IncludeTableFiltered || backupConfig.DataOnly) && MustGetFlagBool(options.WITH_GLOBALS) {

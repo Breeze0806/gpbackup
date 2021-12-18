@@ -46,6 +46,80 @@ func executeStatementsForConn(statements chan toc.StatementWithType, fatalErr *e
 	}
 }
 
+func ExecutePreDataStatements(statements []toc.StatementWithType, progressBar utils.ProgressBar, retries int) int32 {
+	var workerPool sync.WaitGroup
+	var fatalErr error
+	var numErrors int32 = 0
+	numRetries := retries
+	deferredStatements := []toc.StatementWithType{}
+	splitStatements := make(map[int][]toc.StatementWithType, connectionPool.NumConns)
+	currentWorker := 0
+	splitStatements[0] = append(splitStatements[0], statements[0])
+	for i := 0; i < len(statements) - 1; i++ {
+	  if statements[i].TypeIsEqual(statements[i+1]) {
+			splitStatements[currentWorker] = append(splitStatements[currentWorker], statements[i+1])
+		}	else {
+			currentWorker++
+			if currentWorker == connectionPool.NumConns {
+				currentWorker = 0
+			}
+			splitStatements[currentWorker] = append(splitStatements[currentWorker], statements[i+1])
+		}
+	}
+	chanMap := make(map[int] chan toc.StatementWithType, connectionPool.NumConns)
+	for i := 0; i < connectionPool.NumConns; i++ {
+		chanMap[i] = make(chan toc.StatementWithType,len(splitStatements[i]) )
+		for _, statement := range splitStatements[i] {
+			chanMap[i] <- statement
+		}		
+	}
+	for worker, statement := range chanMap {
+		workerPool.Add(1)
+		go func(connNum int, statements chan toc.StatementWithType) {
+			defer workerPool.Done()
+			connNum = connectionPool.ValidateConnNum(connNum)
+			for statement := range statements {
+				if wasTerminated || fatalErr != nil {
+					return
+				}
+				_, err := connectionPool.Exec(statement.Statement, connNum)
+				if err != nil {
+					if numRetries == 0 {
+						gplog.Verbose("Error encountered when executing statement: %s Error was: %s", statement.Schema+"."+statement.Name, err.Error())
+						mutex.Lock()
+						errorTablesMetadata[statement.Schema+"."+statement.Name] = Empty{}
+						mutex.Unlock()
+					} else {
+						deferredStatements = append(deferredStatements, statement)
+						atomic.AddInt32(&numErrors, 1)
+					}
+			}
+			if fatalErr != nil {
+				fmt.Println("")
+				gplog.Fatal(fatalErr, "")
+			} else {
+				progressBar.Increment()
+			}
+			
+			}
+			
+		}(worker, statement)
+		}
+	for _, c := range chanMap {
+		close(c)
+	}
+	workerPool.Wait()
+	if numErrors > 0 {
+		if numRetries > 0 {
+			numRetries--
+			ExecutePreDataStatements(deferredStatements, progressBar, numRetries)
+		} else {
+			gplog.Error("Encountered %d errors during metadata restore; see log file %s for a list of failed statements.", numErrors, gplog.GetLogFilePath())
+		}		
+	}
+	return numErrors
+}
+
 /*
  * This function creates a worker pool of N goroutines to be able to execute up
  * to N statements in parallel.

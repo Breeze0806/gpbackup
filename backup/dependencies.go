@@ -93,27 +93,34 @@ func TopologicalSort(slice []Sortable, dependencies DependencyMap) []Sortable {
 	sorted := make([]Sortable, 0)
 	notVisited := make(map[UniqueID]bool)
 	nameForUniqueID := make(map[UniqueID]string)
+
+	// pre-processing
 	for i, item := range slice {
 		uniqueID := item.GetUniqueID()
 		nameForUniqueID[uniqueID] = item.FQN()
-		deps := dependencies[uniqueID]
+		deps := dependencies[uniqueID] // get dependencies for item
 		notVisited[uniqueID] = true
 		inDegrees[uniqueID] = len(deps)
 		for dep := range deps {
 			isDependentOn[dep] = append(isDependentOn[dep], uniqueID)
 		}
 		dependencyIndexes[uniqueID] = i
-		if len(deps) == 0 {
-			queue = append(queue, item)
+		// enqueue items with inDegree of 0
+		if inDegrees[uniqueID] == 0 {
+			queue = append(queue, item) 
 		}
 	}
-	for len(queue) > 0 {
+	// at this point every item in the queue has no deps
+	for len(queue) > 0 { //while queue is not empty
+ 		// dequeue an item
 		item := queue[0]
 		queue = queue[1:]
-		sorted = append(sorted, item)
-		notVisited[item.GetUniqueID()] = false
+		sorted = append(sorted, item) // add to sorted
+		notVisited[item.GetUniqueID()] = false // item has been visited
+		// decrement inDegree of all neighboring vertices by 1 in isDependentOn
 		for _, dep := range isDependentOn[item.GetUniqueID()] {
 			inDegrees[dep]--
+			// enqueue neighboring items with inDegree == 0
 			if inDegrees[dep] == 0 {
 				queue = append(queue, slice[dependencyIndexes[dep]])
 			}
