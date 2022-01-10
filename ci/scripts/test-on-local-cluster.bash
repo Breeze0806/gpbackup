@@ -29,13 +29,11 @@ set -ex
 # use "temp build dir" of parent shell
 export GOPATH=\${HOME}/go
 export PATH=/usr/local/go/bin:\$PATH:\${GOPATH}/bin
-mkdir -p \${GOPATH}/bin \${GOPATH}/src/github.com/greenplum-db
+mkdir -p \${GOPATH}/bin \${GOPATH}/src/github.com/greenplum-db/gpbackup
 
-cp -R $(pwd)/gpbackup \${GOPATH}/src/github.com/greenplum-db/
-
-# Install dependencies before sourcing greenplum path. Using the GPDB curl is causing issues.
-pushd \${GOPATH}/src/github.com/greenplum-db/gpbackup
-  make depend
+pushd $(pwd)/gpbackup_src
+cp -R . \${GOPATH}/src/github.com/greenplum-db/gpbackup
+make depend
 popd
 
 source /usr/local/greenplum-db-devel/greenplum_path.sh

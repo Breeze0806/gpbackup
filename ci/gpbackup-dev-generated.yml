@@ -663,7 +663,7 @@ jobs:
         params:
           OS: RHEL
   - task: tar-gppkgs
-    image: centos6-image
+    image: rhel8-image
     file: gpbackup_src/ci/tasks/tar-gppkgs.yml
   - put: gppkgs
     params:

@@ -974,6 +974,8 @@ jobs:
         file: ccp_src/ci/tasks/gpinitsystem.yml
   - task: setup-centos-env
     image: rhel8-image
+    params:
+      default_ami_user: rhel
     file: gpbackup_src/ci/tasks/setup-centos-env.yml
   - task: run_tests
     image: rhel8-image
