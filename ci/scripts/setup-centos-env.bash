@@ -7,7 +7,7 @@ USER=${USER:=centos}
 GO_VERSION=1.17.6
 GPHOME=/usr/local/greenplum-db-devel
 
-ssh -t ${default_ami_user}@mdw " \
+ssh -t ${USER}@mdw " \
     sudo yum -y install git && \
     sudo wget https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz && \
     sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
@@ -15,7 +15,7 @@ ssh -t ${default_ami_user}@mdw " \
     sudo chown gpadmin:gpadmin -R /home/gpadmin && \
     sudo yum -y install zstd"
 
-ssh -t ${default_ami_user}@sdw1 "sudo yum -y install zstd"
+ssh -t ${USER}@sdw1 "sudo yum -y install zstd"
 
 scp -r -q gpbackup_src mdw:/home/gpadmin/go/src/github.com/greenplum-db/gpbackup
 
