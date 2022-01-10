@@ -17,6 +17,7 @@ function build_rpm_rhel() {
     sudo yum -y install rpm-build
     rpmbuild -bb ${RPMROOT}/SPECS/gpbackup_tools.spec \
          --define "%_topdir ${RPMROOT}" \
+         --define "_build_id_links none" \
          --define "debug_package %{nil}" \
          --define "rpm_version ${GPBACKUP_TOOLS_VERSION}" \
          --define "operating_system ${OS}"
