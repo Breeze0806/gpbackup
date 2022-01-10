@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: gpdb_src
 - name: bin_gpdb
 - name: gpbackup_tar
@@ -17,4 +17,4 @@ params:
   OS:
 
 run:
-  path: gpbackup/ci/scripts/build-gppkgs.bash
+  path: gpbackup_src/ci/scripts/build-gppkgs.bash

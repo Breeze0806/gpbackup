@@ -16,7 +16,7 @@ ssh -t mdw 'pushd /tmp ; tar -xzf gpbackup_mdw.tar.gz ; popd'
 
 # restore the backedup data to a new cluster and generate a pg_dump.
 # do not fail here because might be possible for gpbackup to fail but still produce the same dump diff
-scp gpbackup/ci/scripts/gprestore_and_dump.bash mdw:/home/gpadmin/gprestore_and_dump.bash
+scp gpbackup_src/ci/scripts/gprestore_and_dump.bash mdw:/home/gpadmin/gprestore_and_dump.bash
 set +e
   ssh -t mdw "bash /home/gpadmin/gprestore_and_dump.bash"
 set -e
@@ -37,7 +37,7 @@ set -e
 # Therefore, we compare this diff with a frozen version,
 # expecting no significant changes. First, however, we need to cut off
 # headers/footers which may contain timestamps
-FROZEN_DIFF=gpbackup/ci/regression/diff.txt
+FROZEN_DIFF=gpbackup_src/ci/regression/diff.txt
 tail -n+4 /tmp/diff.txt | grep -v "@@ .* @@" > /tmp/diff_no_header.txt
 tail -n+4 ${FROZEN_DIFF}  | grep -v "@@ .* @@" > /tmp/existing_diff_no_header.txt
 

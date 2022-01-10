@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: bin_gpbackup_1.0.0_and_1.7.1
@@ -17,4 +17,4 @@ params:
   GPBACKUP_VERSION:
 
 run:
-  path: gpbackup/ci/scripts/all-tests.bash
+  path: gpbackup_src/ci/scripts/all-tests.bash

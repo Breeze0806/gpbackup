@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: gppkgs
@@ -18,4 +18,4 @@ params:
   OS: RHEL
 
 run:
-  path: gpbackup/ci/scripts/ddboost-plugin-tests.bash
+  path: gpbackup_src/ci/scripts/ddboost-plugin-tests.bash

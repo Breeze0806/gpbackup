@@ -5,12 +5,12 @@ image_resource:
 
 inputs:
 - name: gpbackup-go-components
-- name: gpbackup_ddboost_plugin
-- name: gpbackup
+- name: gpbackup_ddboost_plugin_src
+- name: gpbackup_src
 - name: pivnet_release_cache
 
 outputs:
 - name: gpbackup-tools-versions
 
 run:
-  path: gpbackup/ci/scripts/gpbackup-tools-versions.bash
+  path: gpbackup_src/ci/scripts/gpbackup-tools-versions.bash

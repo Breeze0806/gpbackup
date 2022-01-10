@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: gppkgs
@@ -17,4 +17,4 @@ params:
   OS: RHEL
 
 run:
-  path: gpbackup/ci/scripts/s3-plugin-perf.bash
+  path: gpbackup_src/ci/scripts/s3-plugin-perf.bash

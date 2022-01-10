@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: github_release_components_rc
 - name: gpbackup-release-license
 - name: pivnet_release_cache
@@ -14,4 +14,4 @@ outputs:
 - name: workspace
 
 run:
-  path: gpbackup/ci/scripts/update-metadata.bash
+  path: gpbackup_src/ci/scripts/update-metadata.bash

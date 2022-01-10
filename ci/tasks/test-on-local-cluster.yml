@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: gpdb_src
 - name: bin_gpdb
 - name: dummy_seclabel
@@ -16,4 +16,4 @@ params:
   OS: RHEL
 
 run:
-  path: gpbackup/ci/scripts/test-on-local-cluster.bash
+  path: gpbackup_src/ci/scripts/test-on-local-cluster.bash

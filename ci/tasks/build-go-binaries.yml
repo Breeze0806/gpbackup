@@ -4,9 +4,9 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
   path: go/src/github.com/greenplum-db/gpbackup
-- name: gpbackup_s3_plugin
+- name: gpbackup_s3_plugin_src
   path: go/src/github.com/greenplum-db/gpbackup-s3-plugin
 - name: gpbackup_manager_src
   path: go/src/github.com/pivotal/gp-backup-manager

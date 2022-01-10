@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: dummy_seclabel
@@ -16,4 +16,4 @@ params:
   OS:
 
 run:
-  path: gpbackup/ci/scripts/gpbackup-tests.bash
+  path: gpbackup_src/ci/scripts/gpbackup-tests.bash

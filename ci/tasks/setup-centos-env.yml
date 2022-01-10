@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: dummy_seclabel
@@ -14,4 +14,4 @@ params:
   default_ami_user: centos
 
 run:
-  path: gpbackup/ci/scripts/setup-centos-env.bash
+  path: gpbackup_src/ci/scripts/setup-centos-env.bash

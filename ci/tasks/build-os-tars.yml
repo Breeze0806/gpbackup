@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: gpbackup-go-components
 - name: ddboost_components
 - name: gpbackup-release-license
@@ -13,4 +13,4 @@ outputs:
 - name: gpbackup_tar
 
 run:
-  path: gpbackup/ci/scripts/build-os-tars.bash
+  path: gpbackup_src/ci/scripts/build-os-tars.bash

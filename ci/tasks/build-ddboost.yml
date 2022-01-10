@@ -4,14 +4,14 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: bin_gpdb
 - name: libyaml-0.1.7
   optional: true
-- name: gpbackup_ddboost_plugin
+- name: gpbackup_ddboost_plugin_src
 
 outputs:
 - name: ddboost_components
 
 run:
-  path: gpbackup/ci/scripts/build-ddboost.bash
+  path: gpbackup_src/ci/scripts/build-ddboost.bash

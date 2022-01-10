@@ -4,7 +4,7 @@ image_resource:
   type: docker-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: scale_schema
@@ -14,4 +14,4 @@ params:
   OS: RHEL
 
 run:
-  path: gpbackup/ci/scripts/scale-tests.bash
+  path: gpbackup_src/ci/scripts/scale-tests.bash

@@ -9,7 +9,7 @@ scp sqldump/* mdw:/home/gpadmin/sqldump/
 ssh -t mdw 'xz -d /home/gpadmin/sqldump/dump.sql.xz'
 
 # load data from sql, backup, and export the backup artifact
-GENERATE_SCRIPT=gpbackup/ci/scripts/generate_backup_artifact.bash
+GENERATE_SCRIPT=gpbackup_src/ci/scripts/generate_backup_artifact.bash
 scp ${GENERATE_SCRIPT} mdw:/home/gpadmin/generate_backup_artifact.bash
 ssh -t mdw "bash  /home/gpadmin/generate_backup_artifact.bash"
 
