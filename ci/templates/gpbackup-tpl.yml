@@ -354,7 +354,7 @@ resources:
   type: registry-image
   source:
     repository: gcr.io/data-gpdb-private-images/gpdb6-rhel8-test
-    tag: latest
+    tag: devv25
     username: _json_key
     password: ((container-registry-readonly-service-account-key))
     
@@ -1015,7 +1015,7 @@ jobs:
       - put: terraform
         params:
           <<: *ccp_default_params
-          terraform_source: ccp_src/google-nvme-block-device/
+          terraform_source: ccp_src/google
           vars:
             PLATFORM: rhel8
             number_of_nodes: 4
