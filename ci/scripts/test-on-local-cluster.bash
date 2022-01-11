@@ -10,6 +10,9 @@ if ! command -v go &> /dev/null || ! $(go version | grep -q ${GO_VERSION}); then
   rm -rf /usr/local/go && tar -xzf go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
 fi
 
+# print go version for CI
+go version
+
 mkdir /tmp/untarred
 tar -xzf gppkgs/gpbackup-gppkgs.tar.gz -C /tmp/untarred
 
