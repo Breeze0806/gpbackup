@@ -7,8 +7,11 @@ GO_VERSION=1.15.6
 if [[ ${OS} == "ubuntu" ]] ; then
   DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -yq install curl
   wget https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz
-  tar -xzf go${GO_VERSION}.linux-amd64.tar.gz && mv go /usr/local
+  rm -rf /usr/local/go && tar -xzf go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
 fi
+
+# print go version for CI
+go version
 
 mkdir /tmp/untarred
 tar -xzf gppkgs/gpbackup-gppkgs.tar.gz -C /tmp/untarred
