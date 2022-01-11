@@ -5,7 +5,7 @@ set -ex
 # setup cluster and install gpbackup tools using gppkg
 ccp_src/scripts/setup_ssh_to_cluster.sh
 
-GO_VERSION=1.15.6
+GO_VERSION=1.17.6
 GPHOME=/usr/local/greenplum-db-devel
 
 ssh -t ${default_ami_user}@mdw " \

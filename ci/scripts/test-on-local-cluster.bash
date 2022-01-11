@@ -2,10 +2,9 @@
 
 set -ex
 
-GO_VERSION=1.15.6
-
-if [[ ${OS} == "ubuntu" ]] ; then
-  DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -yq install curl
+GO_VERSION=1.17.6
+# If go is not installed or it's not the expected version, install the expected version
+if ! command -v go &> /dev/null || ! $(go version | grep -q ${GO_VERSION}); then
   wget https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz
   rm -rf /usr/local/go && tar -xzf go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
 fi
@@ -32,6 +31,9 @@ set -ex
 # use "temp build dir" of parent shell
 export GOPATH=\${HOME}/go
 export PATH=/usr/local/go/bin:\$PATH:\${GOPATH}/bin
+if [[ -f /opt/gcc_env.sh ]]; then
+    source /opt/gcc_env.sh
+fi
 mkdir -p \${GOPATH}/bin \${GOPATH}/src/github.com/greenplum-db/gpbackup
 
 pushd $(pwd)/gpbackup_src
