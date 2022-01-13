@@ -111,11 +111,11 @@ ccp_aws_default_params_anchor: &ccp_aws_default_params
 
 ccp_vars_anchor: &ccp_default_vars
   instance_type: n1-standard-1
-  PLATFORM: centos6
+  PLATFORM: centos7
 
 ccp_vars_anchor_aws: &ccp_default_vars_aws
   aws_instance-node-instance_type: t2.medium
-  PLATFORM: centos6
+  PLATFORM: centos7
 
 ccp_gen_cluster_default_params_anchor: &ccp_gen_cluster_default_params
   AWS_ACCESS_KEY_ID: {{tf-machine-access-key-id}}

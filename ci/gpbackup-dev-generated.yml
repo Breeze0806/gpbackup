@@ -374,6 +374,14 @@ resources:
     region_name: us-west-2
     access_key_id: {{bucket-access-key-id}}
     secret_access_key: {{bucket-secret-access-key}}
+- name: gpbackup_1.12.1
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: gpdb-stable-concourse-builds
+    regexp: components/gpbackup/gpbackup-(1\.12\.1).tar.gz
+    region_name: us-west-2
+    secret_access_key: ((bucket-secret-access-key))
+  type: s3
 
 - name: gpdb6_src
   type: git
@@ -409,17 +417,6 @@ resources:
     access_key_id: {{bucket-access-key-id}}
     secret_access_key: {{bucket-secret-access-key}}
 
-
-# Manual caching to prevent dep flakes when downloading dependencies
-- name: gpbackup_1.12.1_dependencies
-  type: s3
-  icon: amazon
-  source:
-    bucket: gpbackup-dependencies
-    versioned_file: gpbackup_1.12.1_dependencies.tar.gz
-    region_name: us-west-2
-    access_key_id: {{bucket-access-key-id}}
-    secret_access_key: {{bucket-secret-access-key}}
 
 - name: dummy_seclabel_linux_gpdb6
   type: gcs
@@ -1049,7 +1046,7 @@ jobs:
     - get: ccp_src
     - get: gpdb_src
       resource: gpdb5_src
-    - get: gpbackup_1.12.1_dependencies
+    - get: gpbackup_1.12.1
     - get: terraform.d
       params:
         unpack: true
@@ -1070,8 +1067,6 @@ jobs:
   - task: gpbackup-1.12.1-test
     image: centos6-image
     file: gpbackup_src/ci/tasks/integration-tests-fixed-version.yml
-    params:
-      GPBACKUP_VERSION: "1.12.1"
   on_success:
     <<: *ccp_destroy
   on_failure:

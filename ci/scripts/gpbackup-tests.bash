@@ -28,6 +28,9 @@ cat << ENV_SCRIPT > /tmp/env.sh
   export PGPORT=5432
   export MASTER_DATA_DIRECTORY=/data/gpdata/master/gpseg-1
   export PATH=\${GOPATH}/bin:/usr/local/go/bin:\${PATH}
+  if [[ -f /opt/gcc_env.sh ]]; then
+    source /opt/gcc_env.sh
+  fi
 ENV_SCRIPT
 chmod +x /tmp/env.sh
 scp /tmp/env.sh mdw:/home/gpadmin/env.sh
