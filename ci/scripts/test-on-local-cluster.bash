@@ -65,5 +65,5 @@ popd
 SCRIPT
 
 chmod +x /tmp/run_tests.bash
-su - gpadmin "/tmp/run_tests.bash"
+su gpadmin "/tmp/run_tests.bash"
 

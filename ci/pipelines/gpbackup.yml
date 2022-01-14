@@ -870,7 +870,6 @@ jobs:
     - get: gpdb6-centos7-test
     - get: gpdb6-rhel8-test
     - get: gpdb6-ubuntu18.04-test
-    - get: gpdb6-oel7-test
     - get: gpbackup_src
       passed: [build_gppkgs]
     - get: bin_gpdb6_centos6_rc
@@ -894,13 +893,6 @@ jobs:
         bin_gpdb: bin_gpdb6_centos6_rc
     - task: centos7
       image: gpdb6-centos7-test
-      file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
-      params:
-        REQUIRES_DUMMY_SEC: true
-      input_mapping:
-        bin_gpdb: bin_gpdb6_centos7_rc
-    - task: oel7
-      image: gpdb6-oel7-test
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
       params:
         REQUIRES_DUMMY_SEC: true
