@@ -777,6 +777,8 @@ jobs:
       BUCKET: ((gpbackup-s3-plugin-test-bucket))
   on_success:
     <<: *ccp_destroy
+  on_failure:
+    <<: *ccp_destroy
   ensure:
     <<: *set_failed
 
@@ -829,6 +831,8 @@ jobs:
       BUCKET: ((gpbackup-s3-plugin-test-bucket))
       SCALE_FACTOR: 1
   on_success:
+    <<: *ccp_destroy
+  on_failure:
     <<: *ccp_destroy
   ensure:
     <<: *set_failed
@@ -1047,6 +1051,8 @@ jobs:
       GPBACKUP_VERSION: "1.7.1"
   on_success:
     <<: *ccp_destroy
+  on_failure:
+    <<: *ccp_destroy
   ensure:
     <<: *set_failed
 
@@ -1091,6 +1097,8 @@ jobs:
       GPBACKUP_VERSION: "1.12.1"
   on_success:
     <<: *ccp_destroy
+  on_failure:
+    <<: *ccp_destroy
   ensure:
     <<: *set_failed
 
@@ -1129,6 +1137,8 @@ jobs:
   - task: scale-tests
     file: gpbackup_src/ci/tasks/scale-tests.yml
   on_success:
+    <<: *ccp_destroy_nvme
+  on_failure:
     <<: *ccp_destroy_nvme
   ensure:
     <<: *set_failed
@@ -1169,6 +1179,8 @@ jobs:
     file: gpbackup_src/ci/tasks/scale-tests.yml
   on_success:
     <<: *ccp_destroy
+  on_failure:
+    <<: *ccp_destroy
   ensure:
     <<: *set_failed
 
@@ -1207,6 +1219,8 @@ jobs:
     file: gpbackup_src/ci/tasks/scale-tests.yml
   on_success:
     <<: *ccp_destroy_nvme
+  on_failure:
+    <<: *ccp_destroy_nvme
   ensure:
     <<: *set_failed
 
@@ -1244,6 +1258,8 @@ jobs:
   - task: scale-tests
     file: gpbackup_src/ci/tasks/scale-tests.yml
   on_success:
+    <<: *ccp_destroy_nvme
+  on_failure:
     <<: *ccp_destroy_nvme
   ensure:
     <<: *set_failed
