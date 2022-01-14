@@ -634,7 +634,6 @@ jobs:
 - name: build_binaries
   plan:
   - in_parallel:
-    - get: gpdb6-rhel8-build
     - get: gpbackup_s3_plugin_src
       trigger: true
     - get: gpbackup_manager_src
@@ -643,7 +642,6 @@ jobs:
       trigger: true
     - get: pivnet_release_cache
   - task: build-go-binaries
-    image: gpdb6-rhel8-build
     file: gpbackup_src/ci/tasks/build-go-binaries.yml
   - put: gpbackup-go-components
     params:
