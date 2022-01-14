@@ -156,6 +156,8 @@ set-dev:
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpbackup.dev.yml \
 	--var=gpbackup-branch=${BRANCH}
 
+	$(FLY_CMD) --target=dp pause-job -j $(DEV_PIPELINE_NAME)/GPDB7
+
 set-prod:
 	$(FLY_CMD) --target=prod \
 	set-pipeline --check-creds \
@@ -166,3 +168,5 @@ set-prod:
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/ccp_ci_secrets_dp.yml \
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpbackup.prod.yml \
 	--var=gpbackup-branch=master
+
+	$(FLY_CMD) --target=prod pause-job -j gpbackup/GPDB7
