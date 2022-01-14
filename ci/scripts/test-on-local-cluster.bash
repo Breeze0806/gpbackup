@@ -4,8 +4,15 @@ set -ex
 
 GO_VERSION=1.17.6
 # If go is not installed or it's not the expected version, install the expected version
+
 if ! command -v go &> /dev/null || ! $(go version | grep -q ${GO_VERSION}); then
+  # sles11 image complains about cert common name not matching. Use --no-check-certificate to resolve
+  # ERROR: certificate common name `*.storage.googleapis.com' doesn't match requested host name `storage.googleapis.com'.
+  if grep -q "SUSE Linux Enterprise Server 11" /etc/os-release; then
+  wget --no-check-certificate https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz
+  else
   wget https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz
+  fi
   rm -rf /usr/local/go && tar -xzf go${GO_VERSION}.linux-amd64.tar.gz -C /usr/local
 fi
 
