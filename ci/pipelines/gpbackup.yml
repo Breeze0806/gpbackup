@@ -183,20 +183,6 @@ resources:
     repository: gcr.io/data-gpdb-public-images/gpdb6-centos7-test
     tag: latest
 
-- name: gpdb6-oel7-test
-  type: registry-image
-  source:
-    repository: gcr.io/data-gpdb-public-images/gpdb6-oel7-test
-    tag: latest
-
-- name: gpdb6-rhel8-build
-  type: registry-image
-  source:
-    repository: gcr.io/data-gpdb-private-images/gpdb6-rhel8-build
-    tag: devv25
-    username: _json_key
-    password: ((container-registry-readonly-service-account-key))
-
 - name: gpdb6-rhel8-test
   type: registry-image
   source:
@@ -232,6 +218,12 @@ resources:
     tag: devv25
     username: _json_key
     password: ((container-registry-readonly-service-account-key))
+
+- name: gpdb7-ubuntu18.04-test
+  type: registry-image
+  source:
+    repository: gcr.io/data-gpdb-public-images/gpdb7-ubuntu18.04-test
+    tag: latest
 
 ##### Github Repositories #####
 - name: gpbackup_src
@@ -1106,7 +1098,7 @@ jobs:
   plan:
   - in_parallel:
     - get: gpbackup_src
-      passed: [GPDB7]
+      passed: [build_gppkgs]
     - get: gpdb_binary
       resource: bin_gpdb7_centos7_rc
     - get: ccp_src
@@ -1114,7 +1106,7 @@ jobs:
       resource: gpdb7_src
     - get: scale_schema
     - get: gppkgs
-      passed: [GPDB7]
+      passed: [build_gppkgs]
     - get: terraform.d
       params:
         unpack: true
