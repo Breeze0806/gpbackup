@@ -603,7 +603,7 @@ jobs:
 - name: build_gppkgs
   plan:
   - in_parallel:
-    - get: gpdb6-rhel8-build
+    - get: gpdb6-centos7-test
     - get: gpdb5-sles11-build-test
     - get: bin_gpdb5_sles11_rc
     - get: libyaml-0.1.7
@@ -615,7 +615,7 @@ jobs:
     - get: gpbackup-go-components
       trigger: true
       passed: [build_binaries]
-    - get: bin_gpdb6_rhel8_rc
+    - get: bin_gpdb6_centos7_rc
     - get: gpbackup_src
       passed: [build_binaries]
     - get: gpbackup_ddboost_plugin_src
@@ -623,23 +623,23 @@ jobs:
     - get: pivnet_release_cache
     - get: gpbackup-release-license
   - task: gpbackup-tools-versions
-    image: gpdb6-rhel8-build
+    image: gpdb6-centos7-test
     file: gpbackup_src/ci/tasks/gpbackup-tools-versions.yml
   - in_parallel:
     - do: # RHEL
       - task: build-ddboost-RHEL
-        image: gpdb6-rhel8-test
+        image: gpdb6-centos7-test
         file: gpbackup_src/ci/tasks/build-ddboost.yml
         input_mapping:
-          bin_gpdb: bin_gpdb6_rhel8_rc
+          bin_gpdb: bin_gpdb6_centos7_rc
       - task: tar-binaries-RHEL
-        image: gpdb6-rhel8-test
+        image: gpdb6-centos7-test
         file: gpbackup_src/ci/tasks/build-os-tars.yml
       - task: build_gppkgs-RHEL
-        image: gpdb6-rhel8-test
+        image: gpdb6-centos7-test
         file: gpbackup_src/ci/tasks/build-gppkg.yml
         input_mapping:
-          bin_gpdb: bin_gpdb6_rhel8_rc
+          bin_gpdb: bin_gpdb6_centos7_rc
         output_mapping:
           gppkgs: rhel-gppkg
         params:
@@ -654,7 +654,7 @@ jobs:
         image: gpdb5-sles11-build-test
         file: gpbackup_src/ci/tasks/build-os-tars.yml
       - task: build_gppkgs-SLES
-        image: gpdb5-centos7-build-test
+        image: gpdb6-centos7-test
         file: gpbackup_src/ci/tasks/build-gppkg.yml
         input_mapping:
           bin_gpdb: bin_gpdb5_sles11_rc
@@ -669,10 +669,10 @@ jobs:
           input_mapping:
             bin_gpdb: bin_gpdb6_ubuntu18.04_rc
         - task: tar-binaries-ubuntu
-          image: gpdb6-ubuntu18.04-build
+          image: gpdb6-ubuntu18.04-test
           file: gpbackup_src/ci/tasks/build-os-tars.yml
         - task: build_gppkgs-ubuntu
-          image: gpdb6-ubuntu18.04-build
+          image: gpdb6-ubuntu18.04-test
           file: gpbackup_src/ci/tasks/build-gppkg.yml
           input_mapping:
             bin_gpdb: bin_gpdb6_ubuntu18.04_rc
@@ -681,7 +681,7 @@ jobs:
           params:
             OS: ubuntu
   - task: tar-gppkgs
-    image: gpdb6-rhel8-build
+    image: gpdb6-centos7-test
     file: gpbackup_src/ci/tasks/tar-gppkgs.yml
   - put: gppkgs
     params:
