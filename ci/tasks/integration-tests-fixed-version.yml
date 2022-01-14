@@ -4,7 +4,9 @@ image_resource:
   type: registry-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
+- name: ccp_src
+- name: cluster_env_files
 - name: gpbackup_1.12.1_dependencies
 - name: gpdb_src
 - name: bin_gpdb
@@ -13,4 +15,4 @@ params:
   GPBACKUP_VERSION:
 
 run:
-  path: gpbackup/ci/scripts/integration-tests-fixed-version.bash
+  path: gpbackup_src/ci/scripts/integration-tests-fixed-version.bash

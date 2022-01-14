@@ -4,7 +4,7 @@ image_resource:
   type: registry-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: gppkgs
@@ -15,6 +15,7 @@ params:
   BUCKET:
   REGION:
   OS: RHEL
+  USER:
 
 run:
-  path: gpbackup/ci/scripts/s3-plugin-perf.bash
+  path: gpbackup_src/ci/scripts/s3-plugin-perf.bash

@@ -34,11 +34,9 @@ if [[ -f /opt/gcc_env.sh ]]; then
 fi
 mkdir -p \${GOPATH}/bin \${GOPATH}/src/github.com/greenplum-db
 
-cp -R $(pwd)/gpbackup \${GOPATH}/src/github.com/greenplum-db/
-
-# Install dependencies before sourcing greenplum path. Using the GPDB curl is causing issues.
-pushd \${GOPATH}/src/github.com/greenplum-db/gpbackup
-  make depend
+pushd $(pwd)/gpbackup_src
+cp -R . \${GOPATH}/src/github.com/greenplum-db/gpbackup
+make depend
 popd
 
 source /usr/local/greenplum-db-devel/greenplum_path.sh

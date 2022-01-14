@@ -4,7 +4,7 @@ image_resource:
   type: registry-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: gppkgs
@@ -22,4 +22,4 @@ params:
   REGION:
 
 run:
-  path: gpbackup/ci/scripts/ddboost-plugin-perf.bash
+  path: gpbackup_src/ci/scripts/ddboost-plugin-perf.bash

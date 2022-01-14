@@ -4,11 +4,11 @@ set -ex
 
 # setup cluster and install gpbackup tools using gppkg
 ccp_src/scripts/setup_ssh_to_cluster.sh
-
+USER=${USER:=centos}
 GO_VERSION=1.17.6
 GPHOME=/usr/local/greenplum-db-devel
 
-ssh -t ${default_ami_user}@mdw " \
+ssh -t ${USER}@mdw " \
     sudo wget https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz && \
     sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
     sudo mkdir -p /home/gpadmin/go/src/github.com/greenplum-db && \

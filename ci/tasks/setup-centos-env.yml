@@ -2,16 +2,19 @@ platform: linux
 
 image_resource:
   type: registry-image
+  source:
+    repository: gcr.io/data-gpdb-public-images/ccp
+    tag: latest
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: dummy_seclabel
   optional: true
 
 params:
-  default_ami_user: centos
+  USER:
 
 run:
-  path: gpbackup/ci/scripts/setup-centos-env.bash
+  path: gpbackup_src/ci/scripts/setup-centos-env.bash

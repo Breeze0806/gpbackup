@@ -1,0 +1,4 @@
+gcs-bucket-intermediates: pivotal-gpdb-concourse-resources-intermediates-prod
+gpbackup-tag-filter: 1.*
+gpdb5-tag-filter: 5.*
+gpdb6-tag-filter: 6.*

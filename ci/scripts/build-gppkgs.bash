@@ -12,9 +12,8 @@ function build_rpm_rhel() {
 
     # Move source targz to SOURCES
     cp gpbackup_tar/bin_gpbackup.tar.gz ${RPMROOT}/SOURCES/.
-    cp gpbackup/gppkg/gpbackup_tools.spec.in ${RPMROOT}/SPECS/gpbackup_tools.spec
-
-    sudo yum -y install rpm-build
+    cp gpbackup_src/gppkg/gpbackup_tools.spec.in ${RPMROOT}/SPECS/gpbackup_tools.spec
+    yum -y install rpm-build gettext
     rpmbuild -bb ${RPMROOT}/SPECS/gpbackup_tools.spec \
          --define "%_topdir ${RPMROOT}" \
          --define "debug_package %{nil}" \
@@ -36,7 +35,7 @@ function build_deb_ubuntu() {
     pushd deb_build_dir
         mkdir -p ${PACKAGE_NAME}/DEBIAN
         # control file
-        envsubst < ../gpbackup/gppkg/gpbackup_control.in > ${PACKAGE_NAME}/DEBIAN/control
+        envsubst < ../gpbackup_src/gppkg/gpbackup_control.in > ${PACKAGE_NAME}/DEBIAN/control
         tar -xzf ../gpbackup_tar/bin_gpbackup.tar.gz -C ${PACKAGE_NAME}
         dpkg-deb --build ${PACKAGE_NAME}
     popd
@@ -68,7 +67,7 @@ source /usr/local/greenplum-db-devel/greenplum_path.sh
 for i in ${GPDB_VER[@]}; do
   # spec file
   export GPDB_MAJOR_VERSION=${i}
-  envsubst < gpbackup/gppkg/gppkg_spec.yml.in > gppkg_spec.yml
+  envsubst < gpbackup_src/gppkg/gppkg_spec.yml.in > gppkg_spec.yml
   cat gppkg_spec.yml
 
   mkdir -p gppkg

@@ -4,18 +4,19 @@ image_resource:
   type: registry-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: boostfs_installer
 - name: pgcrypto43
   optional: true
-- name: gpbackup_ddboost_plugin
+- name: gpbackup_ddboost_plugin_src
 
 params:
+  USER:
   DD_SOURCE_HOST:
   DD_USER:
   DD_PW:
 
 run:
-  path: gpbackup/ci/scripts/boostfs-install.bash
+  path: gpbackup_src/ci/scripts/boostfs-install.bash

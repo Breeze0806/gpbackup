@@ -24,7 +24,7 @@ cat <<SCRIPT > /tmp/run_tests.bash
 set -ex
 source env.sh
 
-pushd gpbackup_ddboost_plugin
+pushd gpbackup_ddboost_plugin_src
 make test
 
 # important: whitespace of yaml below is critical, do not change it

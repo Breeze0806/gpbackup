@@ -27,6 +27,11 @@ DEBUG=-gcflags=all="-N -l"
 CUSTOM_BACKUP_DIR ?= "/tmp"
 helper_path ?= $(BIN_DIR)/$(HELPER)
 
+BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
+WORKSPACE ?= ${HOME}/workspace
+DEV_PIPELINE_NAME = dev-gpbackup-${BRANCH}-${USER}
+FLY_CMD ?= fly
+
 depend :
 	go mod download
 
@@ -137,3 +142,33 @@ test-s3-local: build install
 	${PWD}/plugins/plugin_test.sh $(BIN_DIR)/gpbackup_s3_plugin /tmp/minio_config.yaml
 	docker stop s3-minio
 	docker rm s3-minio
+
+set-dev:
+	$(FLY_CMD) --target=dp \
+	set-pipeline --check-creds \
+	--pipeline=$(DEV_PIPELINE_NAME) \
+	--config=ci/pipelines/gpbackup.yml \
+	--load-vars-from=ci/vars/gpbackup.dev.yml \
+	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpdb_common-ci-secrets.yml \
+	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/ccp_ci_secrets_dp.yml \
+	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpbackup.dev.yml \
+	--var=gpbackup-branch=${BRANCH} \
+	--var=pipeline-name=$(DEV_PIPELINE_NAME)
+
+	$(FLY_CMD) --target=dp pause-job -j $(DEV_PIPELINE_NAME)/GPDB7
+	$(FLY_CMD) --target=dp pause-job -j $(DEV_PIPELINE_NAME)/scale-gpdb7
+
+set-prod:
+	$(FLY_CMD) --target=prod \
+	set-pipeline --check-creds \
+	--pipeline=gpbackup \
+	--config=ci/pipelines/gpbackup.yml \
+	--load-vars-from=ci/vars/gpbackup.dev.yml \
+	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpdb_common-ci-secrets.yml \
+	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/ccp_ci_secrets_dp.yml \
+	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpbackup.prod.yml \
+	--var=gpbackup-branch=master \
+	-var=pipeline-name=gpbackup
+
+	$(FLY_CMD) --target=prod pause-job -j gpbackup/GPDB7
+	$(FLY_CMD) --target=prod pause-job -j gpbackup/scale-gpdb7

@@ -4,7 +4,7 @@ image_resource:
   type: registry-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: rhel-gppkg
 - name: sles-gppkg
   optional: true
@@ -17,4 +17,4 @@ outputs:
 - name: gppkgs
 
 run:
-  path: gpbackup/ci/scripts/tar-gppkgs.bash
+  path: gpbackup_src/ci/scripts/tar-gppkgs.bash

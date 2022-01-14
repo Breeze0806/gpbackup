@@ -4,7 +4,7 @@ image_resource:
   type: registry-image
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: gpdb_src
 - name: bin_gpdb
 - name: gpbackup_manager_src
@@ -12,4 +12,4 @@ inputs:
 - name: gppkgs
 
 run:
-  path: gpbackup/ci/scripts/test-gpbackup-manager.bash
+  path: gpbackup_src/ci/scripts/test-gpbackup-manager.bash

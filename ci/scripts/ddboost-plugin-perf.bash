@@ -2,7 +2,7 @@
 
 set -ex
 
-. gpbackup/ci/scripts/setup-perf.bash
+. gpbackup_src/ci/scripts/setup-perf.bash
 
 cat <<SCRIPT > /tmp/run_perf.bash
 #!/bin/bash

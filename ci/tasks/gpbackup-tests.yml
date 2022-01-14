@@ -2,9 +2,12 @@ platform: linux
 
 image_resource:
   type: registry-image
+  source:
+    repository: gcr.io/data-gpdb-public-images/ccp
+    tag: latest
 
 inputs:
-- name: gpbackup
+- name: gpbackup_src
 - name: ccp_src
 - name: cluster_env_files
 - name: dummy_seclabel
@@ -12,8 +15,8 @@ inputs:
 - name: gppkgs
 
 params:
-  default_ami_user: root
+  USER: root
   OS:
 
 run:
-  path: gpbackup/ci/scripts/gpbackup-tests.bash
+  path: gpbackup_src/ci/scripts/gpbackup-tests.bash

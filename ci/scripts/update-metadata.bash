@@ -12,7 +12,7 @@ pushd /tmp
 popd
 cp /tmp/untarred/bin_gpbackup.tar.gz workspace/files-to-upload/
 
-cp gpbackup/ci/pivnet_release/metadata.yml workspace/
+cp gpbackup_src/ci/pivnet_release/metadata.yml workspace/
 tar xzf gppkgs/gpbackup-gppkgs.tar.gz -C workspace/files-to-upload/
 GPBACKUP_VERSION=$(cat workspace/files-to-upload/gpbackup_version)
 
