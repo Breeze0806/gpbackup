@@ -13,8 +13,7 @@ function build_rpm_rhel() {
     # Move source targz to SOURCES
     cp gpbackup_tar/bin_gpbackup.tar.gz ${RPMROOT}/SOURCES/.
     cp gpbackup_src/gppkg/gpbackup_tools.spec.in ${RPMROOT}/SPECS/gpbackup_tools.spec
-
-    sudo yum -y install rpm-build
+    yum -y install rpm-build
     rpmbuild -bb ${RPMROOT}/SPECS/gpbackup_tools.spec \
          --define "%_topdir ${RPMROOT}" \
          --define "_build_id_links none" \

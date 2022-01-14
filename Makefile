@@ -150,7 +150,7 @@ set-dev:
 	set-pipeline --check-creds \
 	--pipeline=$(DEV_PIPELINE_NAME) \
 	--config=ci/pipelines/gpbackup.yml \
-	--load-vars-from=concourse/vars/gpbackup.dev.yml \
+	--load-vars-from=ci/vars/gpbackup.dev.yml \
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpdb_common-ci-secrets.yml \
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/ccp_ci_secrets_dp.yml \
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpbackup.dev.yml \
@@ -161,7 +161,7 @@ set-prod:
 	set-pipeline --check-creds \
 	--pipeline=gpbackup \
 	--config=ci/pipelines/gpbackup.yml \
-	--load-vars-from=concourse/vars/gpbackup.prod.yml \
+	--load-vars-from=ci/vars/gpbackup.dev.yml \
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpdb_common-ci-secrets.yml \
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/ccp_ci_secrets_dp.yml \
 	--load-vars-from=${WORKSPACE}/gp-continuous-integration/secrets/gpbackup.prod.yml \
