@@ -2,6 +2,9 @@ platform: linux
 
 image_resource:
   type: registry-image
+  source:
+    repository: gcr.io/data-gpdb-public-images/ccp
+    tag: latest
 
 inputs:
 - name: gpbackup_src
@@ -11,7 +14,7 @@ inputs:
   optional: true
 
 params:
-  default_ami_user:
+  default_user:
 
 run:
   path: gpbackup_src/ci/scripts/setup-centos-env.bash

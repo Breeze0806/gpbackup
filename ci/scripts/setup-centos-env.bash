@@ -3,7 +3,7 @@
 set -ex
 
 ccp_src/scripts/setup_ssh_to_cluster.sh
-USER=${default_ami_user:=centos}
+USER=${default_user:=centos}
 GO_VERSION=1.17.6
 GPHOME=/usr/local/greenplum-db-devel
 
