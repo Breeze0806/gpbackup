@@ -10,7 +10,7 @@ pushd ${GOPATH}/src/github.com/greenplum-db/gpbackup
   make depend build unit
   version=$(git describe --tags | perl -pe 's/(.*)-([0-9]*)-(g[0-9a-f]*)/\1+dev.\2.\3/')
 popd
-echo ${version} > go_components/gpbackup_version
+echo ${version} > go-components/gpbackup_version
 
 if [[ "gpbackup version ${version}" != "$(${GOPATH}/bin/gpbackup --version)" ]]; then
   echo "unexpected difference in version recorded for gpbackup: expected ${version} to be same as:"
@@ -23,7 +23,7 @@ pushd ${GOPATH}/src/github.com/greenplum-db/gpbackup-s3-plugin
   make depend build unit
   s3_plugin_version=$(git describe --tags | perl -pe 's/(.*)-([0-9]*)-(g[0-9a-f]*)/\1+dev.\2.\3/')
 popd
-echo ${s3_plugin_version} > go_components/s3_plugin_version
+echo ${s3_plugin_version} > go-components/s3_plugin_version
 
 if [[ "gpbackup_s3_plugin version ${s3_plugin_version}" != "$(${GOPATH}/bin/gpbackup_s3_plugin --version)" ]]; then
   echo "unexpected difference in version recorded for gpbackup_s3_plugin: expected ${s3_plugin_version} to be same as:"
@@ -36,7 +36,7 @@ pushd ${GOPATH}/src/github.com/pivotal/gp-backup-manager
   make depend build unit
   gpbackup_manager_version=$(git describe --tags | perl -pe 's/(.*)-([0-9]*)-(g[0-9a-f]*)/\1+dev.\2.\3/')
 popd
-echo ${gpbackup_manager_version} > go_components/gpbackup_manager_version
+echo ${gpbackup_manager_version} > go-components/gpbackup_manager_version
 
 # gpbackup_manager puts newline in front of version line
 output=$(${GOPATH}/bin/gpbackup_manager --version | grep gpbackup)
@@ -45,9 +45,9 @@ if [[ "gpbackup_manager version ${gpbackup_manager_version}" != "$output" ]]; th
   exit 1
 fi
 
-cp ${GOPATH}/bin/gpbackup go_components/
-cp ${GOPATH}/bin/gpbackup_helper go_components/
-cp ${GOPATH}/bin/gprestore go_components/
-cp ${GOPATH}/bin/gpbackup_s3_plugin go_components/
-cp ${GOPATH}/bin/gpbackup_manager go_components/
-cd go_components && tar cfz go_components.tar.gz *
+cp ${GOPATH}/bin/gpbackup go-components/
+cp ${GOPATH}/bin/gpbackup_helper go-components/
+cp ${GOPATH}/bin/gprestore go-components/
+cp ${GOPATH}/bin/gpbackup_s3_plugin go-components/
+cp ${GOPATH}/bin/gpbackup_manager go-components/
+cd go-components && tar cfz go-components.tar.gz *

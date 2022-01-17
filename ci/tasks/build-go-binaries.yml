@@ -16,7 +16,7 @@ inputs:
 
 outputs:
 - name: output_deps
-- name: go_components
+- name: go-components
 
 run:
   path: go/src/github.com/greenplum-db/gpbackup/ci/scripts/build-go-binaries.bash

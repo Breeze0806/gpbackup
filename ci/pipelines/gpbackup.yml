@@ -509,14 +509,14 @@ resources:
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/go-components.tar.gz
+    versioned_file: ((pipeline-name))/go-components/go-components.tar.gz
 
 - name: gppkgs
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/gpbackup-gppkgs.tar.gz
+    versioned_file: ((pipeline-name))/gppkgs/gpbackup-gppkgs.tar.gz
 
 #- name: gpbackup_github_release
 #  type: github-release
@@ -562,7 +562,7 @@ jobs:
     file: gpbackup_src/ci/tasks/build-go-binaries.yml
   - put: gpbackup-go-components
     params:
-      file: go_components/go_components.tar.gz
+      file: go-components/go-components.tar.gz
 
 - name: build_gppkgs
   plan:
