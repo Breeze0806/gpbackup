@@ -191,12 +191,6 @@ resources:
     username: _json_key
     password: ((container-registry-readonly-service-account-key))
 
-- name: gpdb6-ubuntu18.04-build
-  type: registry-image
-  source:
-    repository: gcr.io/data-gpdb-public-images/gpdb6-ubuntu18.04-build
-    tag: latest
-
 - name: gpdb6-ubuntu18.04-test
   type: registry-image
   source:
@@ -421,40 +415,15 @@ resources:
     access_key_id: ((bucket-access-key-id))
     secret_access_key: ((bucket-secret-access-key))
 
-## TODO: Turn this into a template
-- name: dummy_seclabel_gpdb6_centos6
+- name: dummy_seclabel_gpdb6
   type: gcs
   icon: google
   source:
     bucket: dummy_seclabel_gpdb_linux
     json_key: ((gcp_svc_acct_key))
-    regexp: dummy_seclabel_gpdb6_centos6-v(.*).so
+    regexp: dummy_seclabel_gpdb6-v(.*).so
 
-- name: dummy_seclabel_gpdb6_centos7
-  type: gcs
-  icon: google
-  source:
-    bucket: dummy_seclabel_gpdb_linux
-    json_key: ((gcp_svc_acct_key))
-    regexp: dummy_seclabel_gpdb6_centos7-v(.*).so
-
-- name: dummy_seclabel_gpdb6_rhel8
-  type: gcs
-  icon: google
-  source:
-    bucket: dummy_seclabel_gpdb_linux
-    json_key: ((gcp_svc_acct_key))
-    regexp: dummy_seclabel_gpdb6_rhel8-v(.*).so
-
-- name: dummy_seclabel_gpdb6_ubuntu18.04
-  type: gcs
-  icon: google
-  source:
-    bucket: dummy_seclabel_gpdb_linux
-    json_key: ((gcp_svc_acct_key))
-    regexp: dummy_seclabel_gpdb6_ubuntu18.04-v(.*).so
-
-- name: dummy_seclabel_gpdb7_centos7
+- name: dummy_seclabel_gpdb7
   type: gcs
   icon: google
   source:
@@ -462,21 +431,21 @@ resources:
     json_key: ((gcp_svc_acct_key))
     regexp: dummy_seclabel_gpdb7_centos7-v(.*).so
 
-- name: dummy_seclabel_gpdb7_rhel8
-  type: gcs
-  icon: google
-  source:
-    bucket: dummy_seclabel_gpdb_linux
-    json_key: ((gcp_svc_acct_key))
-    regexp: dummy_seclabel_gpdb7_rhel8-v(.*).so
-
-- name: dummy_seclabel_gpdb7_ubuntu18.04
-  type: gcs
-  icon: google
-  source:
-    bucket: dummy_seclabel_gpdb_linux
-    json_key: ((gcp_svc_acct_key))
-    regexp: dummy_seclabel_gpdb7_ubuntu18.04-v(.*).so
+#- name: dummy_seclabel_gpdb7_rhel8
+#  type: gcs
+#  icon: google
+#  source:
+#    bucket: dummy_seclabel_gpdb_linux
+#    json_key: ((gcp_svc_acct_key))
+#    regexp: dummy_seclabel_gpdb7_rhel8-v(.*).so
+#
+#- name: dummy_seclabel_gpdb7_ubuntu18.04
+#  type: gcs
+#  icon: google
+#  source:
+#    bucket: dummy_seclabel_gpdb_linux
+#    json_key: ((gcp_svc_acct_key))
+#    regexp: dummy_seclabel_gpdb7_ubuntu18.04-v(.*).so
 
 - name: terraform
   <<: *terraform_cluster
@@ -621,8 +590,6 @@ jobs:
   plan:
   - in_parallel:
     - get: gpdb6-centos7-test
-    - get: gpdb5-centos7-build-test
-    - get: gpdb6-ubuntu18.04-build
     - get: gpdb6-ubuntu18.04-test
     - get: bin_gpdb6_centos7_rc
     - get: bin_gpdb6_ubuntu18.04_rc
@@ -876,10 +843,7 @@ jobs:
     - get: bin_gpdb6_sles12
     - get: gpdb_src
       resource: gpdb6_src
-    - get: dummy_seclabel_gpdb6_centos6
-    - get: dummy_seclabel_gpdb6_centos7
-    - get: dummy_seclabel_gpdb6_rhel8
-    - get: dummy_seclabel_gpdb6_ubuntu18.04
+    - get: dummy_seclabel_gpdb6
     - get: gppkgs
       trigger: true
       passed: [build_gppkgs]
@@ -891,7 +855,7 @@ jobs:
         REQUIRES_DUMMY_SEC: true
       input_mapping:
         bin_gpdb: bin_gpdb6_centos6_rc
-        dummy_seclabel: dummy_seclabel_gpdb6_centos6
+        dummy_seclabel: dummy_seclabel_gpdb6
     - task: centos7-tests
       image: gpdb6-centos7-test
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
@@ -899,7 +863,7 @@ jobs:
         REQUIRES_DUMMY_SEC: true
       input_mapping:
         bin_gpdb: bin_gpdb6_centos7_rc
-        dummy_seclabel: dummy_seclabel_gpdb6_centos7
+        dummy_seclabel: dummy_seclabel_gpdb6
     - task: rhel8-tests
       image: gpdb6-rhel8-test
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
@@ -907,7 +871,7 @@ jobs:
         REQUIRES_DUMMY_SEC: true
       input_mapping:
         bin_gpdb: bin_gpdb6_rhel8_rc
-        dummy_seclabel: dummy_seclabel_gpdb6_rhel8
+        dummy_seclabel: dummy_seclabel_gpdb6
     - task: sles12-tests
       image: gpdb6-sles12-test
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
@@ -915,7 +879,7 @@ jobs:
         REQUIRES_DUMMY_SEC: true
       input_mapping:
         bin_gpdb: bin_gpdb6_sles12
-        dummy_seclabel: dummy_seclabel_gpdb6_centos7
+        dummy_seclabel: dummy_seclabel_gpdb6
     - task: ubuntu18.04-tests
       image: gpdb6-ubuntu18.04-test
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
@@ -924,7 +888,7 @@ jobs:
         OS: ubuntu
       input_mapping:
         bin_gpdb: bin_gpdb6_ubuntu18.04_rc
-        dummy_seclabel: dummy_seclabel_gpdb6_ubuntu18.04
+        dummy_seclabel: dummy_seclabel_gpdb6
 
 - name: GPDB7
   plan:
@@ -939,9 +903,7 @@ jobs:
     - get: bin_gpdb7_ubuntu18.04_rc
     - get: gpdb_src
       resource: gpdb7_src
-    - get:  dummy_seclabel_gpdb7_centos7
-    - get:  dummy_seclabel_gpdb7_rhel8
-    - get:  dummy_seclabel_gpdb7_ubuntu18.04
+    - get:  dummy_seclabel_gpdb7
     - get: gppkgs
       trigger: true
       passed: [build_gppkgs]
@@ -952,7 +914,7 @@ jobs:
       REQUIRES_DUMMY_SEC: true
     input_mapping:
       bin_gpdb: bin_gpdb7_centos7_rc
-      dummy_seclabel: dummy_seclabel_gpdb7_centos7
+      dummy_seclabel: dummy_seclabel_gpdb
   - task: rhel8-tests
     image: gpdb7-rhel8-test
     file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
@@ -960,15 +922,15 @@ jobs:
       REQUIRES_DUMMY_SEC: true
     input_mapping:
       bin_gpdb: bin_gpdb7_rhel8_rc
-      dummy_seclabel: dummy_seclabel_gpdb7_rhel8
-  - task: rhel8
+      dummy_seclabel: dummy_seclabel_gpdb7
+  - task: ubuntu18.04-tests
     image: gpdb7-ubuntu18.04-test
     file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
     params:
       REQUIRES_DUMMY_SEC: true
     input_mapping:
       bin_gpdb: bin_gpdb7_ubuntu18.04_rc
-      dummy_seclabel: dummy_seclabel_gpdb7_ubuntu18.04
+      dummy_seclabel: dummy_seclabel_gpdb7
 
 - name: backward-compatibility
   plan:
@@ -1112,7 +1074,7 @@ jobs:
     - get: gpbackup_src
       passed: [GPDB6]
     - get: gpdb_binary
-      resource: bin_gpdb6_centos7_rc
+      resource: bin_gpdb6_rhel8_rc
     - get: ccp_src
     - get: gpdb_src
       resource: gpdb6_src
@@ -1129,6 +1091,9 @@ jobs:
       vars:
         instance_type: n1-standard-8
         PLATFORM: rhel8
+        number_of_nodes: 4
+        segments_per_host: 4
+        ccp_reap_minutes: 360
   - task: gen_cluster
     params:
       <<: *ccp_gen_cluster_default_params
@@ -1138,6 +1103,8 @@ jobs:
     file: ccp_src/ci/tasks/gpinitsystem.yml
   - task: setup-centos-env
     file: gpbackup_src/ci/tasks/setup-centos-env.yml
+    params:
+      USER: rhel
   - task: scale-tests
     file: gpbackup_src/ci/tasks/scale-tests.yml
   on_success:
@@ -1170,9 +1137,13 @@ jobs:
       vars:
         instance_type: n1-standard-8
         PLATFORM: centos7
+        number_of_nodes: 4
+        segments_per_host: 4
+        ccp_reap_minutes: 360
   - task: gen_cluster
     params:
       <<: *ccp_gen_cluster_default_params
+      PLATFORM: centos7
     file: ccp_src/ci/tasks/gen_cluster.yml
   - task: gpinitsystem
     file: ccp_src/ci/tasks/gpinitsystem.yml
@@ -1210,9 +1181,13 @@ jobs:
       vars:
         instance_type: n1-standard-8
         PLATFORM: centos7
+        number_of_nodes: 4
+        segments_per_host: 4
+        ccp_reap_minutes: 360
   - task: gen_cluster
     params:
       <<: *ccp_gen_cluster_default_params
+      PLATFORM: centos7
     file: ccp_src/ci/tasks/gen_cluster.yml
   - task: gpinitsystem
     file: ccp_src/ci/tasks/gpinitsystem.yml
