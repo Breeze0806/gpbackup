@@ -191,6 +191,12 @@ resources:
     username: _json_key
     password: ((container-registry-readonly-service-account-key))
 
+- name: gpdb6-ubuntu18.04-build
+  type: registry-image
+  source:
+    repository: gcr.io/data-gpdb-public-images/gpdb6-ubuntu18.04-build
+    tag: latest
+
 - name: gpdb6-ubuntu18.04-test
   type: registry-image
   source:
