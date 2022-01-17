@@ -7,7 +7,7 @@ pushd gpbackup_tar
   printf "#!/bin/sh\nset -x\ntar -xzvf bin_gpbackup.tar.gz -C \$GPHOME" > install_gpdb_component
   chmod +x install_gpdb_component
 
-  tar -xzf ../gpbackup-go-components/go_components.tar.gz
+  tar -xzf ../gpbackup-go-components/go-components.tar.gz
   cp ../ddboost_components/*version .
   cp gpbackup_version version
   cp ../gpbackup-release-license/open_source_license_VMware_Tanzu_Greenplum_Backup_and_Restore*.txt open_source_licenses_VMware_Tanzu_Greenplum_Backup_and_Restore.txt
