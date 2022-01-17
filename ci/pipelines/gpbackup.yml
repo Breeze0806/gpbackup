@@ -431,22 +431,6 @@ resources:
     json_key: ((gcp_svc_acct_key))
     regexp: dummy_seclabel_gpdb7_centos7-v(.*).so
 
-#- name: dummy_seclabel_gpdb7_rhel8
-#  type: gcs
-#  icon: google
-#  source:
-#    bucket: dummy_seclabel_gpdb_linux
-#    json_key: ((gcp_svc_acct_key))
-#    regexp: dummy_seclabel_gpdb7_rhel8-v(.*).so
-#
-#- name: dummy_seclabel_gpdb7_ubuntu18.04
-#  type: gcs
-#  icon: google
-#  source:
-#    bucket: dummy_seclabel_gpdb_linux
-#    json_key: ((gcp_svc_acct_key))
-#    regexp: dummy_seclabel_gpdb7_ubuntu18.04-v(.*).so
-
 - name: terraform
   <<: *terraform_cluster
 
@@ -521,24 +505,18 @@ resources:
 #    versioned_file: gppkgs/gpbackup-gppkgs.tar.gz
 
 - name: gpbackup-go-components
-  type: s3
-  icon: amazon
+  type: gcs
   source:
-    access_key_id: ((bucket-access-key-id))
-    bucket: ((gpdb-stable-bucket-name))
-    region_name: ((aws-region))
-    secret_access_key: ((bucket-secret-access-key))
-    versioned_file: gpbackup-go-components/go_components.tar.gz
+    bucket: ((gcs-bucket-intermediates))
+    json_key: ((concourse-gcs-resources-service-account-key))
+    versioned_file: ((pipeline-name))/go-components.tar.gz
 
 - name: gppkgs
-  type: s3
-  icon: amazon
+  type: gcs
   source:
-    access_key_id: ((bucket-access-key-id))
-    bucket: ((gpdb-stable-bucket-name))
-    region_name: ((aws-region))
-    secret_access_key: ((bucket-secret-access-key))
-    versioned_file: gppkgs/intermediates/gpbackup-gppkgs.tar.gz
+    bucket: ((gcs-bucket-intermediates))
+    json_key: ((concourse-gcs-resources-service-account-key))
+    versioned_file: ((pipeline-name))/gpbackup-gppkgs.tar.gz
 
 #- name: gpbackup_github_release
 #  type: github-release
