@@ -162,14 +162,6 @@ resources:
     repository: gcr.io/data-gpdb-public-images/gpdb5-centos7-build-test
     tag: latest
 
-- name: gpdb5-sles11-build-test
-  type: registry-image
-  source:
-    repository: gcr.io/data-gpdb-private-images/gpdb5-sles11-build-test
-    tag: latest
-    username: _json_key
-    password: ((container-registry-readonly-service-account-key))
-
 ##### GPDB6 #####
 - name: gpdb6-centos6-test
   type: registry-image
@@ -183,11 +175,27 @@ resources:
     repository: gcr.io/data-gpdb-public-images/gpdb6-centos7-test
     tag: latest
 
+- name: gpdb6-sles12-build
+  type: registry-image
+  source:
+    repository: gcr.io/data-gpdb-private-images/gpdb6-sles12-build
+    tag: latest
+    username: _json_key
+    password: ((container-registry-readonly-service-account-key))
+
+- name: gpdb6-sles12-test
+  type: registry-image
+  source:
+    repository: gcr.io/data-gpdb-private-images/gpdb6-sles12-test
+    tag: dev
+    username: _json_key
+    password: ((container-registry-readonly-service-account-key))
+
 - name: gpdb6-rhel8-test
   type: registry-image
   source:
     repository: gcr.io/data-gpdb-private-images/gpdb6-rhel8-test
-    tag: devv25
+    tag: latest
     username: _json_key
     password: ((container-registry-readonly-service-account-key))
 
@@ -325,19 +333,12 @@ resources:
     access_key_id: ((bucket-access-key-id))
     secret_access_key: ((bucket-secret-access-key))
 
-#- name: gpdb5_rpm_installer_centos7_rc
-#  type: gcs
-#  source:
-#    bucket: pivotal-gpdb-concourse-resources-prod
-#    json_key: ((concourse-gcs-resources-service-account-key))
-#    regexp: server/published/gpdb5/greenplum-db-(.*)-rhel7-x86_64.rpm
-
 - name: bin_gpdb5_sles11_rc
   type: s3
   icon: amazon
   source:
-    bucket: gpdb-stable-concourse-builds
-    versioned_file: release_candidates/bin_gpdb_sles11/gpdb5/bin_gpdb.tar.gz
+    bucket: gpdb5-stable-concourse-builds
+    versioned_file: bin_gpdb_sles11/gpdb_branch_5X_STABLE/icw_green/bin_gpdb.tar.gz
     region_name: us-west-2
     access_key_id: ((bucket-access-key-id))
     secret_access_key: ((bucket-secret-access-key))
@@ -366,6 +367,13 @@ resources:
     bucket: ((gcs-bucket))
     json_key: ((concourse-gcs-resources-service-account-key))
     regexp: server/published/gpdb6/server-rc-(.*)-rhel8_x86_64((rc-build-type-gcs)).tar.gz
+
+- name: bin_gpdb6_sles12
+  type: gcs
+  source:
+    bucket: pivotal-gpdb-concourse-resources-intermediates-prod
+    json_key: ((concourse-gcs-resources-service-account-key))
+    versioned_file: 6X_STABLE_without_asserts/bin_gpdb_sles12/bin_gpdb.tar.gz
 
 - name: bin_gpdb6_ubuntu18.04_rc
   type: gcs
@@ -643,7 +651,9 @@ jobs:
   plan:
   - in_parallel:
     - get: gpdb6-centos7-test
-    - get: gpdb5-sles11-build-test
+    - get: gpdb5-centos7-build-test
+    - get: gpdb6-sles12-build
+    - get: gpdb6-sles12-test
     - get: bin_gpdb5_sles11_rc
     - get: libyaml-0.1.7
     - get: gpdb6-ubuntu18.04-build
@@ -685,18 +695,17 @@ jobs:
           OS: RHEL
     - do: # SLES
       - task: build-ddboost-SLES
-        image: gpdb5-sles11-build-test
+        image: gpdb6-sles12-build
         file: gpbackup_src/ci/tasks/build-ddboost.yml
         input_mapping:
-          bin_gpdb: bin_gpdb5_sles11_rc
+          bin_gpdb: bin_gpdb6_sles12
       - task: tar-binaries-SLES
-        image: gpdb5-sles11-build-test
         file: gpbackup_src/ci/tasks/build-os-tars.yml
       - task: build_gppkgs-SLES
         image: gpdb6-centos7-test
         file: gpbackup_src/ci/tasks/build-gppkg.yml
         input_mapping:
-          bin_gpdb: bin_gpdb5_sles11_rc
+          bin_gpdb: bin_gpdb6_sles12
         output_mapping:
           gppkgs: sles-gppkg
         params:
@@ -708,7 +717,6 @@ jobs:
           input_mapping:
             bin_gpdb: bin_gpdb6_ubuntu18.04_rc
         - task: tar-binaries-ubuntu
-          image: gpdb6-ubuntu18.04-test
           file: gpbackup_src/ci/tasks/build-os-tars.yml
         - task: build_gppkgs-ubuntu
           image: gpdb6-ubuntu18.04-test
@@ -765,7 +773,7 @@ jobs:
   - task: setup-centos-env
     image: gpdb6-rhel8-test
     params:
-      default_user: rhel
+      USER: rhel
     file: gpbackup_src/ci/tasks/setup-centos-env.yml
   - task: run_tests
     image: gpdb6-rhel8-test
@@ -778,7 +786,7 @@ jobs:
   on_success:
     <<: *ccp_destroy
   on_failure:
-    <<: *ccp_destroy
+    <<: *set_failed
   ensure:
     <<: *set_failed
 
@@ -816,11 +824,14 @@ jobs:
         file: ccp_src/ci/tasks/gen_cluster.yml
         params:
           <<: *ccp_gen_cluster_default_params
+          PLATFORM: rhel8
       - task: gpinitsystem
         file: ccp_src/ci/tasks/gpinitsystem.yml
   - task: setup-centos-env
     image: gpdb6-rhel8-test
     file: gpbackup_src/ci/tasks/setup-centos-env.yml
+    params:
+      USER: rhel
   - task: run_perf
     image: gpdb6-rhel8-test
     file: gpbackup_src/ci/tasks/s3-plugin-perf.yml
@@ -830,10 +841,11 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ((bucket-secret-access-key))
       BUCKET: ((gpbackup-s3-plugin-test-bucket))
       SCALE_FACTOR: 1
+      USER: rhel
   on_success:
     <<: *ccp_destroy
   on_failure:
-    <<: *ccp_destroy
+    <<: *set_failed
   ensure:
     <<: *set_failed
 
@@ -859,7 +871,7 @@ jobs:
 - name: GPDB4
   plan:
   - in_parallel:
-    - get: gpdb6-centos7-test # This image works fine for tests
+    - get: gpdb5-centos6-build-test
     - get: gpbackup_src
       passed: [build_gppkgs]
     - get: bin_gpdb
@@ -869,8 +881,8 @@ jobs:
     - get: gppkgs
       passed: [build_gppkgs]
       trigger: true
-  - task: centos7
-    image: gpdb6-centos7-test
+  - task: centos6-tests
+    image: gpdb5-centos6-build-test
     file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
 
 - name: GPDB5
@@ -878,12 +890,10 @@ jobs:
   - in_parallel:
     - get: gpdb5-centos6-build-test
     - get: gpdb5-centos7-build-test
-    - get: gpdb5-sles11-build-test
     - get: gpbackup_src
       passed: [build_gppkgs]
     - get: bin_gpdb5_centos6_rc
     - get: bin_gpdb5_centos7_rc
-    - get: bin_gpdb5_sles11_rc
     - get: gpdb_src
       resource: gpdb5_src
     - get: gppkgs
@@ -900,11 +910,6 @@ jobs:
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
       input_mapping:
         bin_gpdb: bin_gpdb5_centos7_rc
-    - task: sles11
-      image: gpdb5-sles11-build-test
-      file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
-      input_mapping:
-        bin_gpdb: bin_gpdb5_sles11_rc
 
 - name: GPDB6
   plan:
@@ -913,12 +918,14 @@ jobs:
     - get: gpdb6-centos7-test
     - get: gpdb6-rhel8-test
     - get: gpdb6-ubuntu18.04-test
+    - get: gpdb6-sles12-test
     - get: gpbackup_src
       passed: [build_gppkgs]
     - get: bin_gpdb6_centos6_rc
     - get: bin_gpdb6_centos7_rc
     - get: bin_gpdb6_rhel8_rc
     - get: bin_gpdb6_ubuntu18.04_rc
+    - get: bin_gpdb6_sles12
     - get: gpdb_src
       resource: gpdb6_src
     - get: dummy_seclabel_gpdb6_centos6
@@ -953,6 +960,14 @@ jobs:
       input_mapping:
         bin_gpdb: bin_gpdb6_rhel8_rc
         dummy_seclabel: dummy_seclabel_gpdb6_rhel8
+    - task: sles12-tests
+      image: gpdb6-sles12-test
+      file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
+      params:
+        REQUIRES_DUMMY_SEC: true
+      input_mapping:
+        bin_gpdb: bin_gpdb6_sles12
+        dummy_seclabel: dummy_seclabel_gpdb6_centos7
     - task: ubuntu18.04-tests
       image: gpdb6-ubuntu18.04-test
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
@@ -1033,11 +1048,11 @@ jobs:
   - task: gen_cluster
     params:
       <<: *ccp_gen_cluster_default_params
+      PLATFORM: centos7
     file: ccp_src/ci/tasks/gen_cluster.yml
   - task: gpinitsystem
     file: ccp_src/ci/tasks/gpinitsystem.yml
   - task: setup-centos-env
-    image: gpdb6-centos7-test
     file: gpbackup_src/ci/tasks/setup-centos-env.yml
   - task: backup-1.0.0-restore-latest
     image: gpdb6-centos7-test
@@ -1052,7 +1067,7 @@ jobs:
   on_success:
     <<: *ccp_destroy
   on_failure:
-    <<: *ccp_destroy
+    <<: *debug_sleep
   ensure:
     <<: *set_failed
 

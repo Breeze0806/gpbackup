@@ -14,7 +14,7 @@ inputs:
   optional: true
 
 params:
-  default_user:
+  USER:
 
 run:
   path: gpbackup_src/ci/scripts/setup-centos-env.bash

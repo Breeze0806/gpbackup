@@ -3,7 +3,8 @@
 set -ex
 
 ccp_src/scripts/setup_ssh_to_cluster.sh
-ssh -t centos@mdw "curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip" && \
+USER=${USER:=centos}
+ssh -t ${USER}@mdw "curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscli.zip" && \
     unzip -qq awscli.zip && \
     sudo ./aws/install"
 
