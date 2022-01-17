@@ -47,10 +47,10 @@ function build_deb_ubuntu() {
 export GPBACKUP_TOOLS_VERSION=$(cat gpbackup-tools-versions/pkg_version)
 echo "Building installer for gpbackup version: ${GPBACKUP_TOOLS_VERSION} platform: ${OS}"
 
-if [[ ${OS} == "RHEL" || ${OS} == "SLES" ]]; then
-    build_rpm_rhel
-elif [[ ${OS} == "ubuntu" ]]; then
+if [[ ${OS} == "ubuntu" ]]; then
     build_deb_ubuntu
+else
+    build_rpm_rhel
 fi
 
 # Install gpdb binaries
@@ -75,7 +75,6 @@ for i in ${GPDB_VER[@]}; do
   cp gppkg_spec.yml ${PKG_FILES} gppkg/
   gppkg --build gppkg/
 done
-echo "Successfully built gppkg"
 
 # Prepare to publish output
 chown gpadmin:gpadmin *.gppkg
