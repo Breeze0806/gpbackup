@@ -1,7 +1,7 @@
 Pkgname: gpbackup_tools
 Architecture: ${ARCH}
-OS: ${OS}
 Version: ${GPBACKUP_TOOLS_VERSION}-gp${GPDB_MAJOR_VERSION}
+OS: ${OS}
 GPDBVersion: ${GPDB_MAJOR_VERSION}
 Description: gpbackup package
 PostInstall:

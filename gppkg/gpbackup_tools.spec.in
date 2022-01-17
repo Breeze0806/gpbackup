@@ -1,4 +1,4 @@
-Name:       gpbackup_tools_%{operating_system}
+Name:       gpbackup_tools_RHEL_SLES
 Version:    %{rpm_version}
 Release:    1
 Summary:    Backup and restore utilities for Greenplum

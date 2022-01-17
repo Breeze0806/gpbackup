@@ -3,7 +3,7 @@ platform: linux
 image_resource:
   type: registry-image
   source:
-    repository: gcr.io/data-gpdb-public-images/ccp
+    repository: debian
     tag: latest
 
 inputs:
