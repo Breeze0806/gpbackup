@@ -157,6 +157,7 @@ set-dev:
 	--var=gpbackup-branch=${BRANCH}
 
 	$(FLY_CMD) --target=dp pause-job -j $(DEV_PIPELINE_NAME)/GPDB7
+	$(FLY_CMD) --target=dp pause-job -j $(DEV_PIPELINE_NAME)/scale-gpdb7
 
 set-prod:
 	$(FLY_CMD) --target=prod \
@@ -170,3 +171,4 @@ set-prod:
 	--var=gpbackup-branch=master
 
 	$(FLY_CMD) --target=prod pause-job -j gpbackup/GPDB7
+	$(FLY_CMD) --target=prod pause-job -j gpbackup/scale-gpdb7
