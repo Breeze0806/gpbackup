@@ -6,7 +6,7 @@ ccp_src/scripts/setup_ssh_to_cluster.sh
 
 # Install ddboost dependencies
 scp -r gpbackup_ddboost_plugin_src mdw:/home/gpadmin/gpbackup_ddboost_plugin_src
-ssh -t ${MDW_USERNAME:=centos}@mdw "sudo yum install -y autoconf automake libtool"
+ssh -t ${USER:=centos}@mdw "sudo yum install -y autoconf automake libtool"
 
 if test -f pgcrypto43/pgcrypto*; then
   scp -r pgcrypto43/pgcrypto*.gppkg mdw:.
@@ -44,6 +44,6 @@ chmod +x /tmp/script.sh
 hostnames=$(cat ./cluster_env_files/etc_hostfile | awk '{print $2}')
 for host in ${hostnames}; do
   echo "Installing boostfs on $host"
-  scp /tmp/script.sh boostfs_installer/${DDBOOSTFS_RPM} centos@${host}:/tmp
-  ssh centos@${host} "/tmp/script.sh"
+  scp /tmp/script.sh boostfs_installer/${DDBOOSTFS_RPM} ${USER:=centos}@${host}:/tmp
+  ssh ${USER:=centos}@${host} "/tmp/script.sh"
 done
