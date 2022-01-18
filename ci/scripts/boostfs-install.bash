@@ -4,9 +4,7 @@ set -ex
 
 ccp_src/scripts/setup_ssh_to_cluster.sh
 
-# Install ddboost dependencies
 scp -r gpbackup_ddboost_plugin_src mdw:/home/gpadmin/gpbackup_ddboost_plugin_src
-ssh -t ${USER:=centos}@mdw "sudo yum install -y autoconf automake libtool"
 
 if test -f pgcrypto43/pgcrypto*; then
   scp -r pgcrypto43/pgcrypto*.gppkg mdw:.
@@ -25,7 +23,7 @@ cat > /tmp/script.sh << SCRIPT
   set -ex
 
   cd /tmp
-  sudo yum -y install ${DDBOOSTFS_RPM} expect
+  sudo yum -y install ${DDBOOSTFS_RPM}
 
   expect << EOD
 spawn /opt/emc/boostfs/bin/boostfs lockbox set -d ${DD_SOURCE_HOST} -s gpdb_boostfs -u ${DD_USER}
