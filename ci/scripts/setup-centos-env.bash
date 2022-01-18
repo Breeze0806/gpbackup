@@ -4,18 +4,11 @@ set -ex
 
 ccp_src/scripts/setup_ssh_to_cluster.sh
 USER=${USER:=centos}
-GO_VERSION=1.17.6
 GPHOME=/usr/local/greenplum-db-devel
 
 ssh -t ${USER}@mdw " \
-    sudo yum -y install git && \
-    sudo wget https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz && \
-    sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
     sudo mkdir -p /home/gpadmin/go/src/github.com/greenplum-db && \
-    sudo chown gpadmin:gpadmin -R /home/gpadmin && \
-    sudo yum -y install zstd"
-
-ssh -t ${USER}@sdw1 "sudo yum -y install zstd"
+    sudo chown gpadmin:gpadmin -R /home/gpadmin"
 
 scp -r -q gpbackup_src mdw:/home/gpadmin/go/src/github.com/greenplum-db/gpbackup
 

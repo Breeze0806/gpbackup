@@ -74,11 +74,11 @@ anchors:
 
 
 - &ddboost_params
-  DD_SOURCE_HOST: ((datadomain_source_host))
+  DD_SOURCE_HOST: ((datadomain_source_host_gcp))
   DD_USER: ((datadomain_user))
-  DD_PW: ((datadomain_password))
-  DD_DEST_HOST: ((datadomain_dest_host))
-  DD_ENCRYPTED_PW: ((encrypted_datadomain_password))
+  DD_PW: ((datadomain_password_gcp))
+  DD_DEST_HOST: ((datadomain_dest_host_gcp))
+  DD_ENCRYPTED_PW: ((encrypted_datadomain_password_gcp))
 
 - &terraform_cluster
   type: terraform
