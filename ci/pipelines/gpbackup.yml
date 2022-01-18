@@ -1,11 +1,10 @@
 ---
 groups:
-- name: All
+- name: Core
   jobs:
   - build_binaries
   - build_gppkgs
   - s3_plugin_tests_rhel8
-  - s3_plugin_perf_rhel8
   - gpbackup-manager-tests_rhel8
   - 5X-head-gpbackup-fixed-test
   - GPDB4
@@ -13,10 +12,41 @@ groups:
   - GPDB6
   - GPDB7
   - backward-compatibility
+
+- name: Scale
+  jobs:
   - scale-gpdb7
   - scale-gpdb6-rhel8
   - scale-gpdb5-centos7
   - scale-gpdb4-centos7
+  - s3_plugin_perf_rhel8
+
+- name: GPDB4
+  jobs:
+  - GPDB4
+  - scale-gpdb4-centos7
+
+- name: GPDB5
+  jobs:
+  - GPDB5
+  - scale-gpdb5-centos7
+  - backward-compatibility
+  - 5X-head-gpbackup-fixed-test
+
+- name: GPDB6
+  jobs:
+  - GPDB6
+  - scale-gpdb6-rhel8
+
+- name: GPDB7
+  jobs:
+  - GPDB7
+  - scale-gpdb7
+
+- name: S3
+  jobs:
+  - s3_plugin_tests_rhel8
+  - s3_plugin_perf_rhel8
 
 ##### Anchors #####
 anchors:
@@ -574,6 +604,7 @@ jobs:
   plan:
   - in_parallel:
     - get: gpdb6-centos7-test
+    - get: gpdb6-ubuntu18.04-build
     - get: gpdb6-ubuntu18.04-test
     - get: bin_gpdb6_centos7_rc
     - get: bin_gpdb6_ubuntu18.04_rc
@@ -694,15 +725,15 @@ jobs:
   - in_parallel:
     - get: gpdb6-rhel8-test
     - get: gpbackup_s3_plugin_src
-      passed: [build_binaries]
+      passed: [s3_plugin_tests_rhel8]
     - get: gpbackup_src
-      passed: [build_gppkgs]
+      passed: [s3_plugin_tests_rhel8]
     - get: gpdb_src
       resource: gpdb6_src
     - get: gpdb_binary
       resource: bin_gpdb6_rhel8_rc
     - get: gppkgs
-      passed: [build_gppkgs]
+      passed: [s3_plugin_tests_rhel8]
       trigger: true
     - do:
       - get: ccp_src
@@ -712,9 +743,9 @@ jobs:
       - put: terraform
         params:
           <<: *ccp_default_params
-          terraform_source: ccp_src/google
+          terraform_source: ccp_src/google-nvme-block-device/
           vars:
-            PLATFORM: rhel8
+            PLATFORM: rhel8-dev
             number_of_nodes: 4
             segments_per_host: 4
             instance_type: n1-standard-8
@@ -799,12 +830,12 @@ jobs:
       trigger: true
       passed: [build_gppkgs]
   - in_parallel:
-    - task: centos6
+    - task: centos6-tests
       image: gpdb5-centos6-build-test
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
       input_mapping:
         bin_gpdb: bin_gpdb5_centos6_rc
-    - task: centos7
+    - task: centos7-tests
       image: gpdb5-centos7-build-test
       file: gpbackup_src/ci/tasks/test-on-local-cluster.yml
       input_mapping:
@@ -1015,7 +1046,7 @@ jobs:
   plan:
   - in_parallel:
     - get: gpbackup_src
-      passed: [build_gppkgs]
+      passed: [GPDB7]
     - get: gpdb_binary
       resource: bin_gpdb7_centos7_rc
     - get: ccp_src
@@ -1023,7 +1054,7 @@ jobs:
       resource: gpdb7_src
     - get: scale_schema
     - get: gppkgs
-      passed: [build_gppkgs]
+      passed: [GPDB7]
     - get: terraform.d
       params:
         unpack: true
@@ -1071,12 +1102,10 @@ jobs:
   - put: terraform
     params:
       <<: *ccp_default_params
-      terraform_source: ccp_src/google
+      terraform_source: ccp_src/google-nvme-block-device/
       vars:
         instance_type: n1-standard-8
         PLATFORM: rhel8
-        number_of_nodes: 4
-        segments_per_host: 4
         ccp_reap_minutes: 360
   - task: gen_cluster
     params:
@@ -1121,8 +1150,6 @@ jobs:
       vars:
         instance_type: n1-standard-8
         PLATFORM: centos7
-        number_of_nodes: 4
-        segments_per_host: 4
         ccp_reap_minutes: 360
   - task: gen_cluster
     params:
@@ -1165,9 +1192,6 @@ jobs:
       vars:
         instance_type: n1-standard-8
         PLATFORM: centos7
-        number_of_nodes: 4
-        segments_per_host: 4
-        ccp_reap_minutes: 360
   - task: gen_cluster
     params:
       <<: *ccp_gen_cluster_default_params
