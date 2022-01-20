@@ -38,10 +38,10 @@ depend :
 		$(GO_ENV) go mod download
 
 $(GINKGO) :
-		$(GO_ENV) go install github.com/onsi/ginkgo/ginkgo
+		$(GO_ENV) go install github.com/onsi/ginkgo/ginkgo@latest
 
 $(GOIMPORTS) :
-		$(GO_ENV) go install golang.org/x/tools/cmd/goimports
+		$(GO_ENV) go install golang.org/x/tools/cmd/goimports@latest
 
 format : $(GOIMPORTS)
 		@goimports -w $(shell find . -type f -name '*.go' -not -path "./vendor/*")
