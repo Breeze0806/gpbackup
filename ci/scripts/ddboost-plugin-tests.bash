@@ -46,7 +46,7 @@ options:
   remote_directory: gpbackup_tests${GPDB_VERSION}
   remote_password: ${DD_ENCRYPTED_PW}
   remote_password_encryption: "on"
-  gpbackup_ddboost_plugin: 5a6d4b59565a363159586335566d787266414b35444e4765775542336c78
+  gpbackup_ddboost_plugin: 66706c6c6e677a6965796f68343365303133336f6c73366b316868326764
 CONFIG
 
 # important: whitespace of yaml below is critical, do not change it
@@ -67,7 +67,7 @@ options:
   remote_directory: gpbackup_tests${GPDB_VERSION}
   remote_password: ${DD_ENCRYPTED_PW}
   remote_password_encryption: "on"
-  gpbackup_ddboost_plugin: 5a6d4b59565a363159586335566d787266414b35444e4765775542336c78
+  gpbackup_ddboost_plugin: 66706c6c6e677a6965796f68343365303133336f6c73366b316868326764
 CONFIG
 
 # important: whitespace of yaml below is critical, do not change it
