@@ -7,6 +7,9 @@ USER=${USER:=centos}
 GPHOME=/usr/local/greenplum-db-devel
 
 ssh -t ${USER}@mdw " \
+    GO_VERSION=1.17.6
+    wget https://storage.googleapis.com/golang/go\${GO_VERSION}.linux-amd64.tar.gz && \
+    sudo rm -rf /usr/local/go && sudo tar -xzf go\${GO_VERSION}.linux-amd64.tar.gz -C /usr/local && \
     sudo mkdir -p /home/gpadmin/go/src/github.com/greenplum-db && \
     sudo chown gpadmin:gpadmin -R /home/gpadmin"
 
