@@ -19,6 +19,9 @@ scp -r -q gpbackup_src mdw:/home/gpadmin/go/src/github.com/greenplum-db/gpbackup
 if test -f dummy_seclabel/dummy_seclabel*.so; then
   scp dummy_seclabel/dummy_seclabel*.so mdw:${GPHOME}/lib/postgresql/dummy_seclabel.so
   scp dummy_seclabel/dummy_seclabel*.so sdw1:${GPHOME}/lib/postgresql/dummy_seclabel.so
+  scp dummy_seclabel/dummy_seclabel*.so sdw2:${GPHOME}/lib/postgresql/dummy_seclabel.so
+  scp dummy_seclabel/dummy_seclabel*.so sdw3:${GPHOME}/lib/postgresql/dummy_seclabel.so
+  scp dummy_seclabel/dummy_seclabel*.so sdw4:${GPHOME}/lib/postgresql/dummy_seclabel.so
 fi
 
 cat <<SCRIPT > /tmp/setup_env.bash
