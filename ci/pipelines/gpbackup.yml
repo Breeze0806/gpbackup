@@ -12,6 +12,7 @@ groups:
   - GPDB6
   - GPDB7
   - backward-compatibility
+  - green_gate
 
 - name: Scale
   jobs:
@@ -20,6 +21,7 @@ groups:
   - scale-gpdb5-centos7
   - scale-gpdb4-centos7
   - s3_plugin_perf_rhel8
+  - ddboost_plugin_perf_rhel8
 
 - name: GPDB4
   jobs:
@@ -51,6 +53,8 @@ groups:
 - name: DDBoost
   jobs:
   - ddboost_plugin_tests_rhel8
+  - ddboost_plugin_perf_rhel8
+
 ##### Anchors #####
 anchors:
 - &ccp_default_params
@@ -482,14 +486,12 @@ resources:
     versioned_file: scale-schemas/scale_db1.tgz
 
 - name: boostfs_installer
-  type: s3
-  icon: amazon
+  type: gcs
+  icon: google
   source:
-    access_key_id: ((gpdb4-bucket-access-key-id))
-    bucket: ((dpm_bucket))
-    region_name: ((aws-region))
-    secret_access_key: ((gpdb4-bucket-secret-access-key))
-    versioned_file: DDBoostFS-1.1.0.1-565598.rhel.x86_64.rpm
+    bucket: boostfs_installer
+    json_key: ((gcp_svc_acct_key))
+    regexp: DDBoostFS-(1.1.0.1-565598).rhel.x86_64.rpm
 
 - name: pivnet_release_cache
   type: s3
@@ -511,25 +513,25 @@ resources:
     secret_access_key: ((bucket-secret-access-key))
     regexp: components/gpbackup/intermediates/gpbackup-(.*).tar.gz
 
-#- name: github_release_components_rc
-#  type: s3
-#  icon: amazon
-#  source:
-#    access_key_id: ((bucket-access-key-id))
-#    bucket: ((gpdb-stable-bucket-name))
-#    region_name: ((aws-region))
-#    secret_access_key: ((bucket-secret-access-key))
-#    regexp: components/gpbackup/gpbackup-(.*).tar.gz
+- name: github_release_components_rc
+  type: s3
+  icon: amazon
+  source:
+    access_key_id: ((bucket-access-key-id))
+    bucket: ((gpdb-stable-bucket-name))
+    region_name: ((aws-region))
+    secret_access_key: ((bucket-secret-access-key))
+    regexp: components/gpbackup/gpbackup-(.*).tar.gz
 
-#- name: gppkgs_rc
-#  type: s3
-#  icon: amazon
-#  source:
-#    access_key_id: ((bucket-access-key-id))
-#    bucket: ((gpdb-stable-bucket-name))
-#    region_name: ((aws-region))
-#    secret_access_key: ((bucket-secret-access-key))
-#    versioned_file: gppkgs/gpbackup-gppkgs.tar.gz
+- name: gppkgs_rc
+  type: s3
+  icon: amazon
+  source:
+    access_key_id: ((bucket-access-key-id))
+    bucket: ((gpdb-stable-bucket-name))
+    region_name: ((aws-region))
+    secret_access_key: ((bucket-secret-access-key))
+    versioned_file: gppkgs/gpbackup-gppkgs.tar.gz
 
 - name: gpbackup-go-components
   type: gcs
@@ -1071,6 +1073,7 @@ jobs:
       passed: [GPDB6]
     - get: gpdb_binary
       resource: bin_gpdb6_rhel8_rc
+      passed: [GPDB6]
     - get: ccp_src
     - get: gpdb_src
       resource: gpdb6_src
@@ -1113,6 +1116,7 @@ jobs:
       passed: [GPDB5]
     - get: gpdb_binary
       resource: bin_gpdb5_centos7_rc
+      passed: [GPDB5]
     - get: ccp_src
     - get: gpdb_src
       resource: gpdb5_src
@@ -1241,38 +1245,89 @@ jobs:
   ensure:
     <<: *set_failed
 
-#{% if "gpbackup-release" == pipeline_name %}
-#- name: green_gate
-#  plan:
-#  - in_parallel:
-#    - get: github_release_components
-#      passed: [build_gppkgs]
-#    - get: gppkgs
-#      trigger: true
-#      passed:
-#        - build_gppkgs
-#        - GPDB4.3
-#        - GPDB5
-#        - GPDB5-oracle7
-#        - GPDB5-sles11
-#        - GPDB6-ubuntu
-#        - GPDB6
-#        - s3_plugin_tests
-#        - backward-compatibility
-#        - ddboost_plugin_and_boostfs_tests_43
-#        - ddboost_plugin_and_boostfs_tests_5x
-#        - ddboost_plugin_and_boostfs_tests_6x
-#        - gpbackup-manager-tests
-#    - get: gpbackup_src
-#      passed: [build_gppkgs]
-#  - in_parallel:
-#    - put: gppkgs_rc
-#      params:
-#        file: gppkgs/gpbackup-gppkgs.tar.gz
-#    - put: github_release_components_rc
-#      params:
-#        file: github_release_components/gpbackup-*.tar.gz
-#
+- name: ddboost_plugin_perf_rhel8
+  plan:
+  - in_parallel:
+    - get: gpdb6-rhel8-test
+    - get: gpbackup_ddboost_plugin_src
+      passed: [build_gppkgs]
+    - get: gpbackup_src
+      passed: [build_gppkgs]
+    - get: boostfs_installer
+    - get: dummy_seclabel
+      resource: dummy_seclabel_gpdb6
+    - get: ccp_src
+    - get: gpdb_src
+      resource: gpdb6_src
+    - get: gpdb_binary
+      resource: bin_gpdb6_rhel8_rc
+    - get: gppkgs
+      passed: [build_gppkgs]
+      trigger: true
+    - get: terraform.d
+      params:
+        unpack: true
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/google-nvme-block-device/
+      vars:
+        instance_type: n1-standard-8
+        number_of_nodes: 4
+        segments_per_host: 4
+        PLATFORM: rhel8-dev
+  - task: gen_cluster
+    params:
+      <<: *ccp_gen_cluster_default_params
+      PLATFORM: rhel8-dev
+    file: ccp_src/ci/tasks/gen_cluster.yml
+  - task: gpinitsystem
+    file: ccp_src/ci/tasks/gpinitsystem.yml
+  - task: setup-centos-env
+    file: gpbackup_src/ci/tasks/setup-centos-env.yml
+    params:
+      USER: rhel
+  - task: run_perf
+    image: gpdb6-rhel8-test
+    file: gpbackup_src/ci/tasks/ddboost-plugin-perf.yml
+    params:
+      <<: *ddboost_params
+      REGION: us-west-2
+      AWS_ACCESS_KEY_ID: ((bucket-access-key-id))
+      AWS_SECRET_ACCESS_KEY: ((bucket-secret-access-key))
+      BUCKET: ((gpbackup-s3-plugin-test-bucket))
+      SCALE_FACTOR: 1
+      USER: rhel
+    on_success:
+      <<: *ccp_destroy_nvme
+  ensure:
+    <<: *set_failed
+
+- name: green_gate
+  plan:
+  - in_parallel:
+    - get: github_release_components
+      passed: [build_gppkgs]
+    - get: gppkgs
+      trigger: true
+      passed:
+        - build_gppkgs
+        - GPDB4
+        - GPDB5
+        - GPDB6
+        - s3_plugin_tests_rhel8
+        - ddboost_plugin_tests_rhel8
+        - gpbackup-manager-tests_rhel8
+    - get: gpbackup_src
+      passed: [build_gppkgs]
+  - in_parallel:
+    - put: gppkgs_rc
+      params:
+        file: gppkgs/gpbackup-gppkgs.tar.gz
+    - put: github_release_components_rc
+      params:
+        file: github_release_components/gpbackup-*.tar.gz
+
 #- name: push-to-github
 #  plan:
 #  - get: centos6-image
