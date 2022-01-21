@@ -102,13 +102,15 @@ anchors:
   action: destroy
   plugin_dir: ../../terraform.d/plugin-cache/linux_amd64
   terraform_source: ccp_src/google/
-  env_name_file: terraform_aws/name
+  env_name_file: terraform/name
+  vars:
+    aws_instance-node-instance_type: t2.micro #t2.micro is ignored in destroy, but aws_instance-node-instance_type is required.
+    aws_ebs_volume_type: standard
 
 - &ccp_destroy
   put: terraform
   params:
     <<: *destroy_params
-    env_name_file: terraform/name
   get_params:
     action: destroy
 
@@ -119,21 +121,6 @@ anchors:
     terraform_source: ccp_src/google-nvme-block-device/
   get_params:
     action: destroy
-
-- &debug_sleep
-  task: debug_sleep
-  config:
-    platform: linux
-    image_resource:
-      type: registry-image
-      source:
-        repository: alpine
-        tag: latest
-    run:
-      path: 'sh'
-      args: ['-c', 'sleep 2h']
-  ensure:
-    <<: *ccp_destroy
 
 - &set_failed
   do:
@@ -717,11 +704,10 @@ jobs:
       AWS_ACCESS_KEY_ID: ((bucket-access-key-id))
       AWS_SECRET_ACCESS_KEY: ((bucket-secret-access-key))
       BUCKET: ((gpbackup-s3-plugin-test-bucket))
-    on_failure:
-      do:
-        - *debug_sleep
+    on_success:
+      <<: *ccp_destroy
   ensure:
-    <<: *ccp_destroy_nvme
+    <<: *set_failed
 
 - name: s3_plugin_perf_rhel8
   plan:
@@ -775,11 +761,10 @@ jobs:
       BUCKET: ((gpbackup-s3-plugin-test-bucket))
       SCALE_FACTOR: 1
       USER: rhel
-    on_failure:
-      do:
-        - *debug_sleep
+    on_success:
+      <<: *ccp_destroy_nvme
   ensure:
-    <<: *ccp_destroy_nvme
+    <<: *set_failed
 
 - name: gpbackup-manager-tests_rhel8
   plan:
@@ -991,8 +976,10 @@ jobs:
     file: gpbackup_src/ci/tasks/all-tests.yml
     params:
       GPBACKUP_VERSION: "1.7.1"
+    on_success:
+      <<: *ccp_destroy
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 # Ensure compatibility between a new GPDB5 binary and a fixed version of gpbackup
 - name: 5X-head-gpbackup-fixed-test
@@ -1033,8 +1020,10 @@ jobs:
     file: gpbackup_src/ci/tasks/integration-tests-fixed-version.yml
     params:
       GPBACKUP_VERSION: "1.12.1"
+    on_success:
+      <<: *ccp_destroy
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: scale-gpdb7
   plan:
@@ -1070,11 +1059,10 @@ jobs:
     file: gpbackup_src/ci/tasks/setup-centos-env.yml
   - task: scale-tests
     file: gpbackup_src/ci/tasks/scale-tests.yml
-    on_failure:
-      do:
-        - *debug_sleep
+    on_success:
+      <<: *ccp_destroy_nvme
   ensure:
-    <<: *ccp_destroy_nvme
+    <<: *set_failed
 
 - name: scale-gpdb6-rhel8
   plan:
@@ -1113,11 +1101,10 @@ jobs:
       USER: rhel
   - task: scale-tests
     file: gpbackup_src/ci/tasks/scale-tests.yml
-    on_failure:
-      do:
-        - *debug_sleep
+    on_success:
+      <<: *ccp_destroy_nvme
   ensure:
-    <<: *ccp_destroy_nvme
+    <<: *set_failed
 
 - name: scale-gpdb5-centos7
   plan:
@@ -1154,11 +1141,10 @@ jobs:
     file: gpbackup_src/ci/tasks/setup-centos-env.yml
   - task: scale-tests
     file: gpbackup_src/ci/tasks/scale-tests.yml
-    on_failure:
-      do:
-        - *debug_sleep
+    on_success:
+      <<: *ccp_destroy_nvme
   ensure:
-    <<: *ccp_destroy_nvme
+    <<: *set_failed
 
 - name: scale-gpdb4-centos7
   plan:
@@ -1194,11 +1180,10 @@ jobs:
     file: gpbackup_src/ci/tasks/setup-centos-env.yml
   - task: scale-tests
     file: gpbackup_src/ci/tasks/scale-tests.yml
-    on_failure:
-      do:
-        - *debug_sleep
+    on_success:
+      <<: *ccp_destroy_nvme
   ensure:
-    <<: *ccp_destroy_nvme
+    <<: *set_failed
 
 - name: ddboost_plugin_tests_rhel8
   plan:
@@ -1246,19 +1231,15 @@ jobs:
     params:
       <<: *ddboost_params
       USER: rhel
-    on_failure:
-      do:
-        - *debug_sleep
   - task: run_tests
     image: gpdb6-rhel8-test
     file: gpbackup_src/ci/tasks/ddboost-plugin-tests.yml
     params:
       <<: *ddboost_params
-    on_failure:
-      do:
-        - *debug_sleep
+    on_success:
+      <<: *ccp_destroy_nvme
   ensure:
-    <<: *ccp_destroy_nvme
+    <<: *set_failed
 
 #{% if "gpbackup-release" == pipeline_name %}
 #- name: green_gate
