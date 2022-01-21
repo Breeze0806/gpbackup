@@ -17,8 +17,9 @@ ssh -t ${USER}@mdw " \
 scp -r -q gpbackup mdw:/home/gpadmin/go/src/github.com/greenplum-db/gpbackup
 
 if test -f dummy_seclabel/dummy_seclabel*.so; then
-  scp dummy_seclabel/dummy_seclabel*.so mdw:${GPHOME}/lib/postgresql/dummy_seclabel.so
-  scp dummy_seclabel/dummy_seclabel*.so sdw1:${GPHOME}/lib/postgresql/dummy_seclabel.so
+    while read -r host
+        do scp dummy_seclabel/dummy_seclabel*.so ${host}:/usr/local/greenplum-db-devel/lib/postgresql/dummy_seclabel.so
+    done  < cluster_env_files/hostfile_all
 fi
 
 # Install gpbackup binaries using gppkg
