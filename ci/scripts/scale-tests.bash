@@ -46,11 +46,6 @@ time gpbackup --dbname copyqueuedb --backup-dir /data/gpdata/ --single-data-file
 timestamp=\$(head -10 "\$log_file" | grep "Backup Timestamp " | grep -Eo "[[:digit:]]{14}")
 gpbackup_manager display-report \$timestamp
 
-echo "## Performing single-data-file, --no-compression, --copy-queue-size 4 backup for copy queue test ##"
-time gpbackup --dbname copyqueuedb --backup-dir /data/gpdata/ --single-data-file --no-compression --copy-queue-size 4 | tee "\$log_file"
-timestamp=\$(head -10 "\$log_file" | grep "Backup Timestamp " | grep -Eo "[[:digit:]]{14}")
-gpbackup_manager display-report \$timestamp
-
 echo "## Performing single-data-file, --no-compression, --copy-queue-size 8 backup for copy queue test ##"
 time gpbackup --dbname copyqueuedb --backup-dir /data/gpdata/ --single-data-file --no-compression --copy-queue-size 8 | tee "\$log_file"
 timestamp=\$(head -10 "\$log_file" | grep "Backup Timestamp " | grep -Eo "[[:digit:]]{14}")
