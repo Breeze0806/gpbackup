@@ -4,6 +4,7 @@ groups:
   jobs:
   - build_binaries
   - build_gppkgs
+  - s3_plugin_tests
   - s3_plugin_tests_rhel8
   - gpbackup-manager-tests_rhel8
   - 5X-head-gpbackup-fixed-test
@@ -20,6 +21,7 @@ groups:
   - scale-gpdb6-rhel8
   - scale-gpdb5-centos7
   - scale-gpdb4-centos7
+  - s3_plugin_perf
   - s3_plugin_perf_rhel8
   - ddboost_plugin_perf_rhel8
 
@@ -47,6 +49,8 @@ groups:
 
 - name: S3
   jobs:
+  - s3_plugin_tests
+  - s3_plugin_perf
   - s3_plugin_tests_rhel8
   - s3_plugin_perf_rhel8
 
@@ -660,6 +664,124 @@ jobs:
     params:
       file: gpbackup_tar/gpbackup-*.tar.gz
 
+- name: s3_plugin_tests
+  plan:
+  - in_parallel:
+    - get: gpdb6-centos7-test
+    - get: gpbackup_s3_plugin_src
+      passed: [build_binaries]
+    - get: gpbackup_src
+      passed: [build_gppkgs]
+    - get: gpdb_src
+      resource: gpdb6_src
+    - get: gpdb_binary
+      resource: bin_gpdb6_centos7_rc
+    - get: gppkgs
+      passed: [build_gppkgs]
+      trigger: true
+    - do:
+      - get: ccp_src
+      - get: terraform.d
+        params:
+          unpack: true
+      - put: terraform
+        params:
+          <<: *ccp_default_params
+          vars:
+            <<: *ccp_default_vars
+            PLATFORM: centos7
+      - task: gen_cluster
+        file: ccp_src/ci/tasks/gen_cluster.yml
+        params:
+          <<: *ccp_gen_cluster_default_params
+          PLATFORM: centos7
+      - task: gpinitsystem
+        file: ccp_src/ci/tasks/gpinitsystem.yml
+  - task: setup-centos-env
+    image: gpdb6-centos7-test
+    params:
+      USER: centos
+    file: gpbackup_src/ci/tasks/setup-centos-env.yml
+  - task: run_tests
+    image: gpdb6-centos7-test
+    file: gpbackup_src/ci/tasks/s3-plugin-tests.yml
+    params:
+      REGION: us-west-2
+      AWS_ACCESS_KEY_ID: ((bucket-access-key-id))
+      AWS_SECRET_ACCESS_KEY: ((bucket-secret-access-key))
+      BUCKET: ((gpbackup-s3-plugin-test-bucket))
+      CL_ENDPOINT: ((cl-endpoint))
+      CL_AWS_ACCESS_KEY_ID: ((cl-bucket-access-key-id))
+      CL_AWS_SECRET_ACCESS_KEY: ((cl-bucket-secret-access-key))
+      CL_BUCKET: ((cl-bucket))
+      CL_FOLDER: ((cl-folder))
+    on_success:
+      <<: *ccp_destroy
+  ensure:
+    <<: *set_failed
+
+- name: s3_plugin_perf
+  plan:
+  - in_parallel:
+    - get: gpdb6-centos7-test
+    - get: gpbackup_s3_plugin_src
+      passed: [s3_plugin_tests]
+    - get: gpbackup_src
+      passed: [s3_plugin_tests]
+    - get: gpdb_src
+      resource: gpdb6_src
+    - get: gpdb_binary
+      resource: bin_gpdb6_centos7_rc
+    - get: gppkgs
+      passed: [s3_plugin_tests]
+      trigger: true
+    - do:
+      - get: ccp_src
+      - get: terraform.d
+        params:
+          unpack: true
+      - put: terraform
+        params:
+          <<: *ccp_default_params
+          terraform_source: ccp_src/google-nvme-block-device/
+          vars:
+            PLATFORM: centos7
+            number_of_nodes: 4
+            segments_per_host: 4
+            instance_type: n1-standard-8
+            ccp_reap_minutes: 360
+      - task: gen_cluster
+        file: ccp_src/ci/tasks/gen_cluster.yml
+        params:
+          <<: *ccp_gen_cluster_default_params
+          PLATFORM: centos7
+      - task: gpinitsystem
+        file: ccp_src/ci/tasks/gpinitsystem.yml
+  - task: setup-centos-env
+    image: gpdb6-centos7-test
+    file: gpbackup_src/ci/tasks/setup-centos-env.yml
+    params:
+      USER: centos
+  - task: run_perf
+    image: gpdb6-centos7-test
+    file: gpbackup_src/ci/tasks/s3-plugin-perf.yml
+    params:
+      REGION: us-west-2
+      AWS_ACCESS_KEY_ID: ((bucket-access-key-id))
+      AWS_SECRET_ACCESS_KEY: ((bucket-secret-access-key))
+      BUCKET: ((gpbackup-s3-plugin-test-bucket))
+      CL_ENDPOINT: ((cl-endpoint))
+      CL_AWS_ACCESS_KEY_ID: ((cl-bucket-access-key-id))
+      CL_AWS_SECRET_ACCESS_KEY: ((cl-bucket-secret-access-key))
+      CL_BUCKET: ((cl-bucket))
+      CL_FOLDER: ((cl-folder))
+      SCALE_FACTOR: 1
+      USER: centos
+    on_success:
+      <<: *ccp_destroy_nvme
+  ensure:
+    <<: *set_failed
+
 - name: s3_plugin_tests_rhel8
   plan:
   - in_parallel:
@@ -706,6 +828,11 @@ jobs:
       AWS_ACCESS_KEY_ID: ((bucket-access-key-id))
       AWS_SECRET_ACCESS_KEY: ((bucket-secret-access-key))
       BUCKET: ((gpbackup-s3-plugin-test-bucket))
+      CL_ENDPOINT: ((cl-endpoint))
+      CL_AWS_ACCESS_KEY_ID: ((cl-bucket-access-key-id))
+      CL_AWS_SECRET_ACCESS_KEY: ((cl-bucket-secret-access-key))
+      CL_BUCKET: ((cl-bucket))
+      CL_FOLDER: ((cl-folder))
     on_success:
       <<: *ccp_destroy
   ensure:

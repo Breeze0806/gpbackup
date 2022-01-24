@@ -16,6 +16,11 @@ params:
   REGION:
   OS: RHEL
   USER:
+  CL_AWS_ACCESS_KEY_ID:
+  CL_AWS_SECRET_ACCESS_KEY:
+  CL_ENDPOINT:
+  CL_BUCKET:
+  CL_FOLDER:
 
 run:
   path: gpbackup_src/ci/scripts/s3-plugin-perf.bash

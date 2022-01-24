@@ -35,10 +35,23 @@ options:
   folder: test/backup
 CONFIG
 
+cat << CONFIG > \${HOME}/cl_config.yaml
+  executablepath: \${GPHOME}/bin/gpbackup_s3_plugin
+  options:
+    endpoint: ${CL_ENDPOINT}
+    aws_access_key_id: ${CL_AWS_ACCESS_KEY_ID}
+    aws_secret_access_key: ${CL_AWS_SECRET_ACCESS_KEY}
+    bucket: ${CL_BUCKET}
+    folder: ${CL_FOLDER}
+    backup_multipart_chunksize: 100MB
+    restore_multipart_chunksize: 100MB
+CONFIG
+
 # ----------------------------------------------
 # Run S3 Plugin scale tests
 # ----------------------------------------------
 pushd \${GOPATH}/src/github.com/greenplum-db/gpbackup/plugins
+print_time_exec "./plugin_test_scale.sh \${GPHOME}/bin/gpbackup_s3_plugin ~/cl_config.yaml"
 print_time_exec "./plugin_test_scale.sh \${GPHOME}/bin/gpbackup_s3_plugin ~/s3_config.yaml"
 popd
 
