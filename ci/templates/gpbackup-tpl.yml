@@ -9,9 +9,13 @@ groups:
 {% if is_prod or "gpbackup-release" == pipeline_name %}
   - GPDB5-sles11
   - GPDB6-ubuntu
-  - ddboost_plugin_and_boostfs_tests_43
-  - ddboost_plugin_and_boostfs_tests_5x
 {% endif %}
+  - ddboost_62_plugin_and_boostfs_tests_43
+  - ddboost_77_plugin_and_boostfs_tests_43
+  - ddboost_62_plugin_and_boostfs_tests_5x
+  - ddboost_77_plugin_and_boostfs_tests_5x
+  - ddboost_62_plugin_and_boostfs_tests_6x
+  - ddboost_77_plugin_and_boostfs_tests_6x
   - gpbackup-manager-tests
 {% if "gpbackup-release" != pipeline_name %}
   - 5X-head-gpbackup-fixed-test
@@ -19,7 +23,6 @@ groups:
   - GPDB6
   - s3_plugin_tests
   - backward-compatibility
-  - ddboost_plugin_and_boostfs_tests_6x
 {% if "gpbackup-release" == pipeline_name %}
   - push-to-github
   - green_gate
@@ -35,8 +38,9 @@ groups:
   - GPDB4.3
 {% if is_prod or "gpbackup-release" == pipeline_name %}
   - scale-43
-  - ddboost_plugin_and_boostfs_tests_43
 {% endif %}
+  - ddboost_62_plugin_and_boostfs_tests_43
+  - ddboost_77_plugin_and_boostfs_tests_43
 
 - name: GPDB5
   jobs:
@@ -44,8 +48,9 @@ groups:
 {% if is_prod or "gpbackup-release" == pipeline_name %}
   - GPDB5-sles11
   - scale-5x
-  - ddboost_plugin_and_boostfs_tests_5x
 {% endif %}
+  - ddboost_62_plugin_and_boostfs_tests_5x
+  - ddboost_77_plugin_and_boostfs_tests_5x
 {% if "gpbackup-release" != pipeline_name %}
   - 5X-head-gpbackup-fixed-test
 {% endif %}
@@ -59,9 +64,11 @@ groups:
   - GPDB6-ubuntu
   - scale-6x
 {% endif %}
-  - ddboost_plugin_and_boostfs_tests_6x
+  - ddboost_62_plugin_and_boostfs_tests_6x
+  - ddboost_77_plugin_and_boostfs_tests_6x
   - s3_plugin_perf
-  - ddboost_plugin_perf
+  - ddboost_62_plugin_perf
+  - ddboost_77_plugin_perf
 
 {% if "gpbackup-release" != pipeline_name %}
 - name: Master
@@ -77,8 +84,9 @@ groups:
   - scale-5x
   - scale-6x
   - s3_plugin_perf
-  - ddboost_plugin_perf
 {% endif %}
+  - ddboost_62_plugin_perf
+  - ddboost_77_plugin_perf
 {% if "gpbackup-release" != pipeline_name %}
   - scale-master
 {% endif %}
@@ -181,12 +189,19 @@ anchors:
       bucket: gpdb5-pipeline-dynamic-terraform
       bucket_path: clusters-google/
 
-- &ddboost_params
+- &ddboost_62_params
   DD_SOURCE_HOST: ((datadomain_source_host_gcp))
   DD_USER: ((datadomain_user))
   DD_PW: ((datadomain_password_gcp))
   DD_DEST_HOST: ((datadomain_dest_host_gcp))
   DD_ENCRYPTED_PW: ((encrypted_datadomain_password_gcp))
+
+- &ddboost_77_params
+  DD_SOURCE_HOST: ((datadomain_77_source_host_gcp))
+  DD_USER: ((datadomain_user))
+  DD_PW: ((datadomain_77_password_gcp))
+  DD_DEST_HOST: ((datadomain_77_dest_host_gcp))
+  DD_ENCRYPTED_PW: ((encrypted_datadomain__77_password_gcp))
 
 - &slack_alert
   put: slack-alert
@@ -406,6 +421,8 @@ resources:
     access_key_id: {{bucket-access-key-id}}
     secret_access_key: {{bucket-secret-access-key}}
 
+{% endif %}
+
 - name: pgcrypto43
   type: s3
   icon: amazon
@@ -415,7 +432,6 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
     regexp: pgcrypto-ossv1.1_pv(.*)_gpdb4.3orca-rhel5-x86_64.gppkg
-{% endif %}
 
 {% if "gpbackup-release" != pipeline_name %}
 # Manual caching to prevent dep flakes when downloading dependencies
@@ -887,8 +903,7 @@ jobs:
     image: centos7-image
     file: gpbackup/ci/tasks/test-gpbackup-manager.yml
 
-{% if is_prod or "gpbackup-release" == pipeline_name %}
-- name: ddboost_plugin_and_boostfs_tests_43
+- name: ddboost_62_plugin_and_boostfs_tests_43
   plan:
   - in_parallel:
     - get: gpdb_src
@@ -930,18 +945,18 @@ jobs:
     file: gpbackup/ci/tasks/boostfs-install.yml
     image: centos6-image
     params:
-      <<: *ddboost_params
+      <<: *ddboost_62_params
   - task: run_tests
     image: centos6-image
     file: gpbackup/ci/tasks/ddboost-plugin-tests.yml
     params:
-      <<: *ddboost_params
+      <<: *ddboost_62_params
     on_success:
       <<: *ccp_destroy_nvme
   ensure:
     <<: *set_failed
 
-- name: ddboost_plugin_and_boostfs_tests_5x
+- name: ddboost_62_plugin_and_boostfs_tests_5x
   plan:
   - in_parallel:
     - get: gpdb_src
@@ -982,19 +997,123 @@ jobs:
     file: gpbackup/ci/tasks/boostfs-install.yml
     image: centos6-image
     params:
-      <<: *ddboost_params
+      <<: *ddboost_62_params
   - task: run_tests
     image: centos6-image
     file: gpbackup/ci/tasks/ddboost-plugin-tests.yml
     params:
-      <<: *ddboost_params
+      <<: *ddboost_62_params
     on_success:
       <<: *ccp_destroy_nvme
   ensure:
     <<: *set_failed
-{% endif %}
 
-- name: ddboost_plugin_and_boostfs_tests_6x
+- name: ddboost_77_plugin_and_boostfs_tests_43
+  plan:
+  - in_parallel:
+    - get: gpdb_src
+      resource: gpdb5_src
+    - get: gpdb_binary
+      resource: bin_gpdb_43_stable
+    - get: pgcrypto43
+    - get: centos6-image
+    - get: gpbackup_ddboost_plugin
+      passed: [build_gppkgs]
+    - get: gpbackup
+      passed: [build_gppkgs]
+    - get: boostfs_installer
+    - get: ccp_src
+    - get: gppkgs
+      passed: [build_gppkgs]
+      trigger: true
+    - get: terraform.d
+      params:
+        unpack: true
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/google-nvme-block-device/
+      vars:
+        instance_type: n1-standard-8
+        PLATFORM: centos6
+  - task: gen_cluster
+    params:
+      <<: *ccp_gen_cluster_default_params
+      PLATFORM: centos6
+    file: ccp_src/ci/tasks/gen_cluster.yml
+  - task: gpinitsystem
+    file: ccp_src/ci/tasks/gpinitsystem.yml
+  - task: setup-centos-env
+    file: gpbackup/ci/tasks/setup-centos-env.yml
+    image: centos6-image
+  - task: install-boostfs
+    file: gpbackup/ci/tasks/boostfs-install.yml
+    image: centos6-image
+    params:
+      <<: *ddboost_77_params
+  - task: run_tests
+    image: centos6-image
+    file: gpbackup/ci/tasks/ddboost-plugin-tests.yml
+    params:
+      <<: *ddboost_77_params
+    on_success:
+      <<: *ccp_destroy_nvme
+  ensure:
+    <<: *set_failed
+
+- name: ddboost_77_plugin_and_boostfs_tests_5x
+  plan:
+  - in_parallel:
+    - get: gpdb_src
+      resource: gpdb5_src
+    - get: gpdb_binary
+      resource: bin_gpdb_5x_stable_centos6
+    - get: centos6-image
+    - get: gpbackup_ddboost_plugin
+      passed: [build_gppkgs]
+    - get: gpbackup
+      passed: [build_gppkgs]
+    - get: boostfs_installer
+    - get: ccp_src
+    - get: gppkgs
+      passed: [build_gppkgs]
+      trigger: true
+    - get: terraform.d
+      params:
+        unpack: true
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/google-nvme-block-device/
+      vars:
+        instance_type: n1-standard-8
+        PLATFORM: centos6
+  - task: gen_cluster
+    params:
+      <<: *ccp_gen_cluster_default_params
+      PLATFORM: centos6
+    file: ccp_src/ci/tasks/gen_cluster.yml
+  - task: gpinitsystem
+    file: ccp_src/ci/tasks/gpinitsystem.yml
+  - task: setup-centos-env
+    file: gpbackup/ci/tasks/setup-centos-env.yml
+    image: centos6-image
+  - task: install-boostfs
+    file: gpbackup/ci/tasks/boostfs-install.yml
+    image: centos6-image
+    params:
+      <<: *ddboost_77_params
+  - task: run_tests
+    image: centos6-image
+    file: gpbackup/ci/tasks/ddboost-plugin-tests.yml
+    params:
+      <<: *ddboost_77_params
+    on_success:
+      <<: *ccp_destroy_nvme
+  ensure:
+    <<: *set_failed
+
+- name: ddboost_62_plugin_and_boostfs_tests_6x
   plan:
   - in_parallel:
     - get: gpdb_src
@@ -1037,18 +1156,72 @@ jobs:
     file: gpbackup/ci/tasks/boostfs-install.yml
     image: centos6-image
     params:
-      <<: *ddboost_params
+      <<: *ddboost_62_params
   - task: run_tests
     image: centos6-image
     file: gpbackup/ci/tasks/ddboost-plugin-tests.yml
     params:
-      <<: *ddboost_params
+      <<: *ddboost_62_params
     on_success:
       <<: *ccp_destroy_nvme
   ensure:
     <<: *set_failed
 
-- name: ddboost_plugin_perf
+- name: ddboost_77_plugin_and_boostfs_tests_6x
+  plan:
+  - in_parallel:
+    - get: gpdb_src
+      resource: gpdb6_src
+    - get: gpdb_binary
+      resource: bin_gpdb_6x_stable_centos6
+    - get: dummy_seclabel
+      resource: dummy_seclabel_linux_gpdb6
+    - get: centos6-image
+    - get: gpbackup_ddboost_plugin
+      passed: [build_gppkgs]
+    - get: gpbackup
+      passed: [build_gppkgs]
+    - get: boostfs_installer
+    - get: ccp_src
+    - get: gppkgs
+      passed: [build_gppkgs]
+      trigger: true
+    - get: terraform.d
+      params:
+        unpack: true
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/google-nvme-block-device/
+      vars:
+        instance_type: n1-standard-8
+        PLATFORM: centos6
+  - task: gen_cluster
+    params:
+      <<: *ccp_gen_cluster_default_params
+      PLATFORM: centos6
+    file: ccp_src/ci/tasks/gen_cluster.yml
+  - task: gpinitsystem
+    file: ccp_src/ci/tasks/gpinitsystem.yml
+  - task: setup-centos-env
+    file: gpbackup/ci/tasks/setup-centos-env.yml
+    image: centos6-image
+  - task: install-boostfs
+    file: gpbackup/ci/tasks/boostfs-install.yml
+    image: centos6-image
+    params:
+      <<: *ddboost_77_params
+  - task: run_tests
+    image: centos6-image
+    file: gpbackup/ci/tasks/ddboost-plugin-tests.yml
+    params:
+      <<: *ddboost_77_params
+    on_success:
+      <<: *ccp_destroy_nvme
+  ensure:
+    <<: *set_failed
+
+- name: ddboost_62_plugin_perf
   plan:
   - in_parallel:
     - get: centos6-image
@@ -1091,7 +1264,61 @@ jobs:
     image: centos6-image
     file: gpbackup/ci/tasks/ddboost-plugin-perf.yml
     params:
-      <<: *ddboost_params
+      <<: *ddboost_62_params
+      REGION: us-west-2
+      AWS_ACCESS_KEY_ID: ((bucket-access-key-id))
+      AWS_SECRET_ACCESS_KEY: ((bucket-secret-access-key))
+      BUCKET: ((gpbackup-s3-plugin-test-bucket))
+      SCALE_FACTOR: 1
+    on_success:
+      <<: *ccp_destroy_nvme
+  ensure:
+    <<: *set_failed
+
+- name: ddboost_77_plugin_perf
+  plan:
+  - in_parallel:
+    - get: centos6-image
+    - get: gpbackup_ddboost_plugin
+      passed: [build_gppkgs]
+    - get: gpbackup
+      passed: [build_gppkgs]
+    - get: boostfs_installer
+    - get: ccp_src
+    - get: gpdb_src
+      resource: gpdb6_src
+    - get: gpdb_binary
+      resource: bin_gpdb_6x_stable_centos6
+    - get: gppkgs
+      passed: [build_gppkgs]
+      trigger: true
+    - get: terraform.d
+      params:
+        unpack: true
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/google-nvme-block-device/
+      vars:
+        instance_type: n1-standard-8
+        number_of_nodes: 4
+        segments_per_host: 4
+        PLATFORM: centos6
+  - task: gen_cluster
+    params:
+      <<: *ccp_gen_cluster_default_params
+      PLATFORM: centos6
+    file: ccp_src/ci/tasks/gen_cluster.yml
+  - task: gpinitsystem
+    file: ccp_src/ci/tasks/gpinitsystem.yml
+  - task: setup-centos-env
+    image: centos6-image
+    file: gpbackup/ci/tasks/setup-centos-env.yml
+  - task: run_perf
+    image: centos6-image
+    file: gpbackup/ci/tasks/ddboost-plugin-perf.yml
+    params:
+      <<: *ddboost_77_params
       REGION: us-west-2
       AWS_ACCESS_KEY_ID: ((bucket-access-key-id))
       AWS_SECRET_ACCESS_KEY: ((bucket-secret-access-key))
@@ -1704,9 +1931,12 @@ jobs:
 {% if is_prod %}
         - GPDB5-sles11
         - GPDB6-ubuntu
-        - ddboost_plugin_and_boostfs_tests_43
-        - ddboost_plugin_and_boostfs_tests_5x
 {% endif %}
-        - ddboost_plugin_and_boostfs_tests_6x
+        - ddboost_62_plugin_and_boostfs_tests_43
+        - ddboost_62_plugin_and_boostfs_tests_5x
+        - ddboost_62_plugin_and_boostfs_tests_6x
+        - ddboost_77_plugin_and_boostfs_tests_43
+        - ddboost_77_plugin_and_boostfs_tests_5x
+        - ddboost_77_plugin_and_boostfs_tests_6x
         - gpbackup-manager-tests
 {% endif %}
