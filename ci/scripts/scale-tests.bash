@@ -33,6 +33,26 @@ set -e
 ### Data scale tests ###
 log_file=/tmp/gpbackup.log
 
+### Metadata scale test ###
+echo "## Populating database for metadata scale test ##"
+tar -xvf scale_db1.tgz
+createdb metadatascaledb -T template0
+
+psql -f scale_db1.sql -d metadatascaledb -v client_min_messages=error -q
+
+echo "## Performing pg_dump with metadata-only ##"
+time pg_dump -s metadatascaledb --schema-only > /data/gpdata/pg_dump.sql
+
+echo "## Performing pg_dump --binary-upgrade with metadata-only ##"
+time pg_dump -s metadatascaledb --binary-upgrade --schema-only > /data/gpdata/pg_dump_binary_upgrade.sql
+
+echo "## Performing gpbackup with metadata-only ##"
+time gpbackup --dbname metadatascaledb --backup-dir /data/gpdata/ --metadata-only --verbose | tee "\$log_file"
+
+timestamp=\$(head -10 "\$log_file" | grep "Backup Timestamp " | grep -Eo "[[:digit:]]{14}")
+echo "## Performing gprestore with metadata-only ##"
+time gprestore --timestamp "\$timestamp" --backup-dir /data/gpdata/ --redirect-db=metadatascaledb_res --jobs=4 --create-db
+
 echo "## Populating database for copy queue test ##"
 createdb copyqueuedb
 for j in {1..20000}
@@ -117,21 +137,7 @@ time gprestore --timestamp "\$timestamp" --backup-dir /data/gpdata/  --create-db
 dropdb datascaledb
 rm "\$log_file"
 
-### Metadata scale test ###
-echo "## Populating database for metadata scale test ##"
-tar -xvf scale_db1.tgz
-createdb metadatascaledb -T template0
 
-psql -f scale_db1.sql -d metadatascaledb -v client_min_messages=error -q
-
-echo "## Performing pg_dump with metadata-only ##"
-time pg_dump -s metadatascaledb > /data/gpdata/pg_dump.sql
-echo "## Performing gpbackup with metadata-only ##"
-time gpbackup --dbname metadatascaledb --backup-dir /data/gpdata/ --metadata-only --verbose | tee "\$log_file"
-
-timestamp=\$(head -10 "\$log_file" | grep "Backup Timestamp " | grep -Eo "[[:digit:]]{14}")
-echo "## Performing gprestore with metadata-only ##"
-time gprestore --timestamp "\$timestamp" --backup-dir /data/gpdata/ --redirect-db=metadatascaledb_res --jobs=4 --create-db
 
 SCRIPT
 
