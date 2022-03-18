@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -42,7 +43,7 @@ type RestoreReader struct {
 	readerType ReaderType
 }
 
-func (r *RestoreReader) positionReader(pos uint64) error {
+func (r *RestoreReader) positionReader(pos uint64, oid int) error {
 	switch r.readerType {
 	case SEEKABLE:
 		seekPosition, err := r.seekReader.Seek(int64(pos), io.SeekCurrent)
@@ -50,14 +51,14 @@ func (r *RestoreReader) positionReader(pos uint64) error {
 			// Always hard quit if data reader has issues
 			return err
 		}
-		log(fmt.Sprintf("Data Reader seeked forward to %d byte offset", seekPosition))
+		log(fmt.Sprintf("Oid %d: Data Reader seeked forward to %d byte offset", oid, seekPosition))
 	case NONSEEKABLE:
 		numDiscarded, err := r.bufReader.Discard(int(pos))
 		if err != nil {
 			// Always hard quit if data reader has issues
 			return err
 		}
-		log(fmt.Sprintf("Data Reader discarded %d bytes", numDiscarded))
+		log(fmt.Sprintf("Oid %d: Data Reader discarded %d bytes", oid, numDiscarded))
 	case SUBSET:
 		// Do nothing as the stream is pre filtered
 	}
@@ -107,10 +108,11 @@ func doRestoreAgent() error {
 
 		currentPipe = fmt.Sprintf("%s_%d", *pipeFile, oidList[i])
 		if i < len(oidList)-*copyQueue {
-			log(fmt.Sprintf("Creating pipe for oid %d\n", oidList[i+*copyQueue]))
 			nextPipeToCreate := fmt.Sprintf("%s_%d", *pipeFile, oidList[i+*copyQueue])
+			log(fmt.Sprintf("Oid %d: Creating pipe %s\n", oidList[i+*copyQueue], nextPipeToCreate))
 			err := createPipe(nextPipeToCreate)
 			if err != nil {
+				log(fmt.Sprintf("Oid %d: Failed to create pipe %s\n", oidList[i+*copyQueue], nextPipeToCreate))
 				// In the case this error is hit it means we have lost the
 				// ability to create pipes normally, so hard quit even if
 				// --on-error-continue is given
@@ -121,7 +123,7 @@ func doRestoreAgent() error {
 		start = tocEntries[uint(oid)].StartByte
 		end = tocEntries[uint(oid)].EndByte
 
-		log(fmt.Sprintf("Opening pipe for oid %d: %s", oid, currentPipe))
+		log(fmt.Sprintf("Oid %d: Opening pipe %s", oid, currentPipe))
 		for {
 			writer, writeHandle, err = getRestorePipeWriter(currentPipe)
 			if err != nil {
@@ -154,17 +156,18 @@ func doRestoreAgent() error {
 				// logic for when os.write() returns EAGAIN due to full buffer, set
 				// the file descriptor to block on IO.
 				syscall.SetNonblock(int(writeHandle.Fd()), false)
+				log(fmt.Sprintf("Oid %d: Reader connected to pipe %s", oid, path.Base(currentPipe)))
 				break
 			}
 		}
 
-		log(fmt.Sprintf("Data Reader - Start Byte: %d; End Byte: %d; Last Byte: %d", start, end, lastByte))
-		err = reader.positionReader(start - lastByte)
+		log(fmt.Sprintf("Oid %d: Data Reader - Start Byte: %d; End Byte: %d; Last Byte: %d", oid, start, end, lastByte))
+		err = reader.positionReader(start-lastByte, oid)
 		if err != nil {
 			return err
 		}
 
-		log(fmt.Sprintf("Restoring table with oid %d", oid))
+		log(fmt.Sprintf("Oid %d: Start table restore", oid))
 		bytesRead, err = reader.copyData(int64(end - start))
 		if err != nil {
 			// In case COPY FROM or copyN fails in the middle of a load. We
@@ -175,24 +178,26 @@ func doRestoreAgent() error {
 			goto LoopEnd
 		}
 		lastByte = end
-		log(fmt.Sprintf("Copied %d bytes into the pipe", bytesRead))
+		log(fmt.Sprintf("Oid %d: Copied %d bytes in", oid, bytesRead))
 
-		log(fmt.Sprintf("Closing pipe for oid %d: %s", oid, currentPipe))
-		err = flushAndCloseRestoreWriter()
+		err = flushAndCloseRestoreWriter(path.Base(currentPipe), oid)
 		if err != nil {
+			log(fmt.Sprintf("Oid %d: Failed to flush and close pipe", oid))
 			goto LoopEnd
 		}
+		log(fmt.Sprintf("Oid %d: Successfully flushed and closed pipe", oid))
 
 	LoopEnd:
-		log(fmt.Sprintf("Removing pipe for oid %d: %s", oid, currentPipe))
+		log(fmt.Sprintf("Oid %d: Attempt to delete pipe", oid))
 		errPipe := deletePipe(currentPipe)
 		if errPipe != nil {
 			return errPipe
 		}
+		log(fmt.Sprintf("Oid %d: Pipe Remove Succesful", oid))
 
 		if err != nil {
 			if *onErrorContinue {
-				logError(fmt.Sprintf("Error encountered: %v", err))
+				logError(fmt.Sprintf("Oid %d: Error encountered: %v", oid, err))
 				lastError = err
 				err = nil
 				continue

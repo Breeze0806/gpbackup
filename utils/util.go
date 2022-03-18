@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	path "path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -33,12 +34,19 @@ func FileExists(filename string) bool {
 }
 
 func RemoveFileIfExists(filename string) error {
+	baseFilename := path.Base(filename)
 	if FileExists(filename) {
+		gplog.Debug("File %s: Exists, Attempting Removal", baseFilename)
 		err := os.Remove(filename)
 		if err != nil {
+			gplog.Error("File %s: Failed to remove. Error %s", baseFilename, err.Error())
 			return err
 		}
+		gplog.Debug("File %s: Successfully removed", baseFilename)
+	} else {
+		gplog.Debug("File %s: Does not exist. No removal needed", baseFilename)
 	}
+
 	return nil
 }
 
