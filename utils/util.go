@@ -12,13 +12,13 @@ import (
 	path "path/filepath"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
 	"github.com/greenplum-db/gpbackup/filepath"
 	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 const MINIMUM_GPDB4_VERSION = "4.3.17"
@@ -39,8 +39,8 @@ func RemoveFileIfExists(filename string) error {
 		gplog.Debug("File %s: Exists, Attempting Removal", baseFilename)
 		err := os.Remove(filename)
 		if err != nil {
-			gplog.Error("File %s: Failed to remove. Error %s", baseFilename, err.Error())
-			return err
+			//gplog.Error("File %s: Failed to remove. Error %s", baseFilename, err.Error())
+			return errors.Errorf("File %s: Failed to remove. Error %s", baseFilename)
 		}
 		gplog.Debug("File %s: Successfully removed", baseFilename)
 	} else {
@@ -57,25 +57,28 @@ func OpenFileForWrite(filename string) (*os.File, error) {
 func WriteToFileAndMakeReadOnly(filename string, contents []byte) error {
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to open file %s", filename)
 	}
 
 	_, err = file.Write(contents)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to write to file %s", filename)
 	}
 
 	err = file.Chmod(0444)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to chmod file %s", filename)
 	}
 
 	err = file.Sync()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to sync file %s", filename)
 	}
-
-	return file.Close()
+	err =  file.Close()
+	if err != nil {
+		return errors.Wrapf(err, "failed to close file %s", filename)
+	}
+	return nil
 }
 
 // Dollar-quoting logic is based on appendStringLiteralDQ() in pg_dump.
@@ -131,10 +134,10 @@ func ValidateCompressionTypeAndLevel(compressionType string, compressionLevel in
 
 	if levelsDescription, ok := compressionLevelsForType[compressionType]; ok {
 		if compressionLevel < levelsDescription.Min || compressionLevel > levelsDescription.Max {
-			return fmt.Errorf("compression type '%s' only allows compression levels between %d and %d, but the provided level is %d", compressionType, levelsDescription.Min, levelsDescription.Max, compressionLevel)
+			return errors.Errorf("compression type '%s' only allows compression levels between %d and %d, but the provided level is %d", compressionType, levelsDescription.Min, levelsDescription.Max, compressionLevel)
 		}
 	} else {
-		return fmt.Errorf("unknown compression type '%s'", compressionType)
+		return errors.Errorf("unknown compression type '%s'", compressionType)
 	}
 
 	return nil
@@ -142,15 +145,22 @@ func ValidateCompressionTypeAndLevel(compressionType string, compressionLevel in
 
 func InitializeSignalHandler(cleanupFunc func(bool), procDesc string, termFlag *bool) {
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, unix.SIGINT, unix.SIGTERM, unix.SIGPIPE)
 	go func() {
-		for range signalChan {
-			fmt.Println() // Add newline after "^C" is printed
+		sig := <-signalChan
+		fmt.Println() // Add newline after "^C" is printed
+		switch sig	{
+		case unix.SIGINT:
+			gplog.Warn("Received an interrupt signal, aborting %s", procDesc)
+		case unix.SIGTERM:
 			gplog.Warn("Received a termination signal, aborting %s", procDesc)
-			*termFlag = true
-			cleanupFunc(true)
-			os.Exit(2)
+		case unix.SIGPIPE:
+			gplog.Warn("Received a broken pipe signal, aborting %s", procDesc)
 		}
+		
+		*termFlag = true
+		cleanupFunc(true)
+		os.Exit(2)
 	}()
 }
 

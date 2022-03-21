@@ -8,18 +8,17 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 
 	"golang.org/x/sys/unix"
 
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
 	"github.com/greenplum-db/gp-common-go-libs/operating"
 	"github.com/greenplum-db/gpbackup/utils"
+	"github.com/pkg/errors"
 )
 
 /*
@@ -70,15 +69,22 @@ func DoHelper() {
 	InitializeGlobals()
 	// Initialize signal handler
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, unix.SIGINT, unix.SIGTERM, unix.SIGPIPE)
 	go func() {
-		for range signalChan {
-			fmt.Println() // Add newline after "^C" is printed
-			gplog.Warn("Received a termination signal, aborting helper agent on segment %d", *content)
-			wasTerminated = true
-			DoCleanup()
-			os.Exit(2)
+		sig := <-signalChan
+		fmt.Println() // Add newline after "^C" is printed
+		switch sig	{
+		case unix.SIGINT:
+			gplog.Warn("Received an interrupt signal on segment %d, aborting", *content)
+		case unix.SIGTERM:
+			gplog.Warn("Received a termination signal on segment %d, aborting", *content)
+		case unix.SIGPIPE:
+			gplog.Warn("Received a broken pipe signal on segment %d, aborting", *content)
 		}
+		
+		wasTerminated = true
+		DoCleanup()
+		os.Exit(2)
 	}()
 
 	if *backupAgent {
@@ -87,7 +93,8 @@ func DoHelper() {
 		err = doRestoreAgent()
 	}
 	if err != nil {
-		logError(fmt.Sprintf("%v: %s", err, debug.Stack()))
+		fmt.Printf("%+v\n", err)
+		//logError(fmt.Sprintf("%v: %s", err, debug.Stack()))
 		handle, _ := utils.OpenFileForWrite(fmt.Sprintf("%s_error", *pipeFile))
 		_ = handle.Close()
 	}
@@ -162,7 +169,7 @@ func preloadCreatedPipes(oidList []int, queuedPipeCount int) {
 func getOidListFromFile() ([]int, error) {
 	oidStr, err := operating.System.ReadFile(*oidFile)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to read file %s", *oidFile)
 	}
 	oidStrList := strings.Split(strings.TrimSpace(fmt.Sprintf("%s", oidStr)), "\n")
 	oidList := make([]int, len(oidStrList))
@@ -175,20 +182,28 @@ func getOidListFromFile() ([]int, error) {
 }
 
 func flushAndCloseRestoreWriter(pipeName string, oid int) error {
+	currentPipe := writeHandle.Name()
+	if writeHandle == nil && writer.Available() > 0 {
+		return errors.Errorf("pipe %s closed before data flushed", currentPipe)
+	}
 	if writer != nil {
-		err := writer.Flush()
-		if err != nil {
-			logError("Oid %d: Failed to flush pipe %s", oid, pipeName)
-			return err
+		if writer.Available() > 0 {
+			log("bytes remaining in pipe %d", writer.Available())
+			err := writer.Flush()
+			if err != nil {
+				return errors.Wrapf(err, "failed to flush pipe %s", currentPipe)
+			}
+			writer = nil
+			log("Oid %d: Successfully flushed pipe %s", oid, currentPipe)
+		}	else {
+			log("Oid %d: No bytes available to flush from pipe %s", oid, currentPipe)
 		}
-		writer = nil
-		log("Oid %d: Successfully flushed pipe %s", oid, pipeName)
 	}
 	if writeHandle != nil {
 		err := writeHandle.Close()
 		if err != nil {
-			logError("Oid %d: Failed to close pipe handle", oid)
-			return err
+			//logError("Oid %d: Failed to close pipe handle", oid)
+			return errors.Wrapf(err, "failed to close pipe handle %s", currentPipe)
 		}
 		writeHandle = nil
 		log("Oid %d: Successfully closed pipe handle", oid)
@@ -213,14 +228,14 @@ func DoCleanup() {
 	}
 	err := flushAndCloseRestoreWriter("current writer on cleanup", 0)
 	if err != nil {
-		log("Encountered error during cleanup: %v", err)
+		log("Encountered error during cleanup: %+v", err)
 	}
 
 	for pipeName, _ := range pipesMap {
 		log("Removing pipe %s", pipeName)
 		err = deletePipe(pipeName)
 		if err != nil {
-			log("Encountered error removing pipe %s: %v", pipeName, err)
+			log("Encountered error removing pipe %s: %+v", pipeName, err)
 		}
 	}
 
@@ -228,7 +243,7 @@ func DoCleanup() {
 	for _, skipFile := range skipFiles {
 		err = utils.RemoveFileIfExists(skipFile)
 		if err != nil {
-			log("Encountered error during cleanup skip files: %v", err)
+			log("Encountered error during cleanup skip files: %+v", err)
 		}
 	}
 	log("Cleanup complete")

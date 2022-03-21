@@ -10,13 +10,13 @@ import (
 	"os/exec"
 	"path"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/greenplum-db/gpbackup/toc"
 	"github.com/greenplum-db/gpbackup/utils"
 	"github.com/klauspost/compress/zstd"
 	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 /*
@@ -112,11 +112,11 @@ func doRestoreAgent() error {
 			log(fmt.Sprintf("Oid %d: Creating pipe %s\n", oidList[i+*copyQueue], nextPipeToCreate))
 			err := createPipe(nextPipeToCreate)
 			if err != nil {
-				log(fmt.Sprintf("Oid %d: Failed to create pipe %s\n", oidList[i+*copyQueue], nextPipeToCreate))
+				//log(fmt.Sprintf("Oid %d: Failed to create pipe %s\n", oidList[i+*copyQueue], nextPipeToCreate))
 				// In the case this error is hit it means we have lost the
 				// ability to create pipes normally, so hard quit even if
 				// --on-error-continue is given
-				return err
+				return errors.Errorf("Oid %d: Failed to create pipe %s\n", oidList[i+*copyQueue], nextPipeToCreate)
 			}
 		}
 
@@ -127,7 +127,7 @@ func doRestoreAgent() error {
 		for {
 			writer, writeHandle, err = getRestorePipeWriter(currentPipe)
 			if err != nil {
-				if errors.Is(err, syscall.ENXIO) {
+				if errors.Is(err, unix.ENXIO) {
 					// COPY (the pipe reader) has not tried to access the pipe yet so our restore_helper
 					// process will get ENXIO error on its nonblocking open call on the pipe. We loop in
 					// here while looking to see if gprestore has created a skip file for this restore entry.
@@ -144,18 +144,20 @@ func doRestoreAgent() error {
 						// keep trying to open the pipe
 						time.Sleep(100 * time.Millisecond)
 					}
-				} else {
+				} else if errors.Is(err, unix.EPIPE) {
+					return errors.Errorf("broken pipe error: %s", currentPipe)
+				}	else {
 					// In the case this error is hit it means we have lost the
 					// ability to open pipes normally, so hard quit even if
 					// --on-error-continue is given
-					return err
+					return errors.Errorf("error opening pipe: %s", currentPipe)
 				}
 			} else {
 				// A reader has connected to the pipe and we have successfully opened
 				// the writer for the pipe. To avoid having to write complex buffer
 				// logic for when os.write() returns EAGAIN due to full buffer, set
 				// the file descriptor to block on IO.
-				syscall.SetNonblock(int(writeHandle.Fd()), false)
+				unix.SetNonblock(int(writeHandle.Fd()), false)
 				log(fmt.Sprintf("Oid %d: Reader connected to pipe %s", oid, path.Base(currentPipe)))
 				break
 			}
@@ -270,7 +272,7 @@ func getRestoreDataReader(toc *toc.SegmentTOC, oidList []int) (*RestoreReader, e
 }
 
 func getRestorePipeWriter(currentPipe string) (*bufio.Writer, *os.File, error) {
-	fileHandle, err := os.OpenFile(currentPipe, os.O_WRONLY|syscall.O_NONBLOCK, os.ModeNamedPipe)
+	fileHandle, err := os.OpenFile(currentPipe, os.O_WRONLY|unix.O_NONBLOCK, os.ModeNamedPipe)
 	if err != nil {
 		return nil, nil, err
 	}
