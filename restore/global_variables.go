@@ -37,6 +37,7 @@ var (
 	restoreStartTime    string
 	version             string
 	wasTerminated       bool
+	restoreFailed				bool
 	errorTablesMetadata map[string]Empty
 	errorTablesData     map[string]Empty
 	opts                *options.Options

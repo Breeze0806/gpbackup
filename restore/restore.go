@@ -29,7 +29,7 @@ func DoInit(cmd *cobra.Command) {
 	gplog.InitializeLogging("gprestore", "")
 	SetCmdFlags(cmd.Flags())
 	_ = cmd.MarkFlagRequired(options.TIMESTAMP)
-	utils.InitializeSignalHandler(DoCleanup, "restore process", &wasTerminated)
+	utils.InitializeSignalHandler(DoCleanup, "restore process", &wasTerminated, &restoreFailed)
 }
 
 /*
@@ -189,6 +189,7 @@ func createDatabase(metadataFilename string) {
 
 	if numErrors > 0 {
 		gplog.Info("Database creation completed with failures for: %s", dbName)
+		restoreFailed = true
 	} else {
 		gplog.Info("Database creation complete for: %s", dbName)
 	}
@@ -210,6 +211,7 @@ func restoreGlobal(metadataFilename string) {
 
 	if numErrors > 0 {
 		gplog.Info("Global database metadata restore completed with failures")
+		restoreFailed = true
 	} else {
 		gplog.Info("Global database metadata restore complete")
 	}
@@ -299,6 +301,7 @@ func restorePredata(metadataFilename string) {
 		gplog.Info("Pre-data metadata restore incomplete")
 	} else if numErrors > 0 {
 		gplog.Info("Pre-data metadata restore completed with failures")
+		restoreFailed = true
 	} else {
 		gplog.Info("Pre-data metadata restore complete")
 	}
@@ -339,6 +342,7 @@ func restoreSequenceValues(metadataFilename string) {
 		gplog.Info("Sequence values restore incomplete")
 	} else if numErrors > 0 {
 		gplog.Info("Sequence values restore completed with failures")
+		restoreFailed = true
 	} else {
 		gplog.Info("Sequence values restore complete")
 	}
@@ -402,6 +406,7 @@ func restoreData() (int, map[string][]toc.MasterDataEntry) {
 		gplog.Info("Data restore incomplete")
 	} else if numErrors > 0 {
 		gplog.Info("Data restore completed with failures")
+		restoreFailed = true
 	} else {
 		gplog.Info("Data restore complete")
 	}
@@ -432,6 +437,7 @@ func restorePostdata(metadataFilename string) {
 		gplog.Info("Post-data metadata restore incomplete")
 	} else if numErrors > 0 {
 		gplog.Info("Post-data metadata restore completed with failures")
+		restoreFailed = true
 	} else {
 		gplog.Info("Post-data metadata restore complete")
 	}
@@ -452,6 +458,7 @@ func restoreStatistics() {
 
 	if numErrors > 0 {
 		gplog.Info("Query planner statistics restore completed with failures")
+		restoreFailed = true
 	} else {
 		gplog.Info("Query planner statistics restore complete")
 	}
@@ -526,6 +533,7 @@ func runAnalyze(filteredDataEntries map[string][]toc.MasterDataEntry) {
 		gplog.Info("ANALYZE on restored tables incomplete")
 	} else if numErrors > 0 {
 		gplog.Info("ANALYZE on restored tables completed with failures")
+		restoreFailed = true
 	} else {
 		gplog.Info("ANALYZE on restored tables complete")
 	}
@@ -535,7 +543,7 @@ func runAnalyze(filteredDataEntries map[string][]toc.MasterDataEntry) {
 func DoTeardown() {
 	restoreFailed := false
 	defer func() {
-		DoCleanup(restoreFailed)
+		DoCleanup()
 
 		errorCode := gplog.GetErrorCode()
 		if errorCode == 0 {
@@ -628,7 +636,7 @@ func writeErrorTables(isMetadata bool) {
 	gplog.FatalOnError(err)
 }
 
-func DoCleanup(restoreFailed bool) {
+func DoCleanup() {
 	defer func() {
 		if err := recover(); err != nil {
 			gplog.Warn("Encountered error during cleanup: %+v", err)
@@ -645,9 +653,9 @@ func DoCleanup(restoreFailed bool) {
 			// If the terminate query is sent via a connection with an active COPY command, and the COPY's pipe is cleaned up, the COPY query will hang.
 			// This results in the DoCleanup function passed to the signal handler to never return, blocking the os.Exit call
 			if wasTerminated { // These should all end on their own in a successful restore
-				utils.TerminateHangingCopySessions(connectionPool, fpInfo, fmt.Sprintf("gprestore_%s_%s", fpInfo.Timestamp, restoreStartTime))
-				utils.CleanUpSegmentHelperProcesses(globalCluster, fpInfo, "restore")
-			} else if restoreFailed {
+				utils.TerminateHangingCopySessions(connectionPool, fpInfo, fmt.Sprintf("gprestore_%s_%s", fpInfo.Timestamp, restoreStartTime))			
+			}
+			if restoreFailed {
 				utils.CleanUpSegmentHelperProcesses(globalCluster, fpInfo, "restore")
 			}
 			utils.CleanUpHelperFilesOnAllHosts(globalCluster, fpInfo)

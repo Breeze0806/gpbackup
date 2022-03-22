@@ -42,6 +42,7 @@ var (
 	pluginConfig         *utils.PluginConfig
 	version              string
 	wasTerminated        bool
+	backupFailed				 bool	
 	backupLockFile       lockfile.Lockfile
 	filterRelationClause string
 	quotedRoleNames      map[string]string

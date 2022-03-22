@@ -31,7 +31,7 @@ func DoInit(cmd *cobra.Command) {
 	gplog.InitializeLogging("gpbackup", "")
 	SetCmdFlags(cmd.Flags())
 	_ = cmd.MarkFlagRequired(options.DBNAME)
-	utils.InitializeSignalHandler(DoCleanup, "backup process", &wasTerminated)
+	utils.InitializeSignalHandler(DoCleanup, "backup process", &wasTerminated, &backupFailed)
 	objectCounts = make(map[string]int)
 }
 
@@ -330,9 +330,9 @@ func backupStatistics(tables []Table) {
 }
 
 func DoTeardown() {
-	backupFailed := false
+	backupFailed = false
 	defer func() {
-		DoCleanup(backupFailed)
+		DoCleanup()
 
 		errorCode := gplog.GetErrorCode()
 		if errorCode == 0 {
@@ -419,7 +419,7 @@ func DoTeardown() {
 	}
 }
 
-func DoCleanup(backupFailed bool) {
+func DoCleanup() {
 	defer func() {
 		if err := recover(); err != nil {
 			gplog.Warn("Encountered error during cleanup: %v", err)

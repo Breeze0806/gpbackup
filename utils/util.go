@@ -157,7 +157,7 @@ func ValidateCompressionTypeAndLevel(compressionType string, compressionLevel in
 	return nil
 }
 
-func InitializeSignalHandler(cleanupFunc func(bool), procDesc string, termFlag *bool) {
+func InitializeSignalHandler(cleanupFunc func(), procDesc string, termFlags... *bool) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, unix.SIGINT, unix.SIGTERM, unix.SIGPIPE)
 	go func() {
@@ -171,9 +171,11 @@ func InitializeSignalHandler(cleanupFunc func(bool), procDesc string, termFlag *
 		case unix.SIGPIPE:
 			gplog.Warn("Received a broken pipe signal, aborting %s", procDesc)
 		}
-		
-		*termFlag = true
-		cleanupFunc(true)
+		for f := range termFlags {
+			*termFlags[f] = true
+		}
+
+		cleanupFunc()
 		os.Exit(2)
 	}()
 }
