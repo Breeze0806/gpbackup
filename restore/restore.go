@@ -646,8 +646,10 @@ func DoCleanup(restoreFailed bool) {
 			// This results in the DoCleanup function passed to the signal handler to never return, blocking the os.Exit call
 			if wasTerminated { // These should all end on their own in a successful restore
 				utils.TerminateHangingCopySessions(connectionPool, fpInfo, fmt.Sprintf("gprestore_%s_%s", fpInfo.Timestamp, restoreStartTime))
+				utils.CleanUpSegmentHelperProcesses(globalCluster, fpInfo, "restore")
+			} else if restoreFailed {
+				utils.CleanUpSegmentHelperProcesses(globalCluster, fpInfo, "restore")
 			}
-			utils.CleanUpSegmentHelperProcesses(globalCluster, fpInfo, "restore")
 			utils.CleanUpHelperFilesOnAllHosts(globalCluster, fpInfo)
 		}
 	}
