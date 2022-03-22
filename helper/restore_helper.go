@@ -68,11 +68,12 @@ func (r *RestoreReader) positionReader(pos uint64, oid int) error {
 func (r *RestoreReader) copyData(num int64) (int64, error) {
 	var bytesRead int64
 	var err error
+	multiWriter := io.MultiWriter(writer, debugWriter)
 	switch r.readerType {
 	case SEEKABLE:
-		bytesRead, err = io.CopyN(writer, r.seekReader, num)
+		bytesRead, err = io.CopyN(multiWriter, r.seekReader, num)
 	case NONSEEKABLE, SUBSET:
-		bytesRead, err = io.CopyN(writer, r.bufReader, num)
+		bytesRead, err = io.CopyN(multiWriter, r.bufReader, num)
 	}
 	return bytesRead, err
 }
@@ -123,6 +124,7 @@ func doRestoreAgent() error {
 		end = tocEntries[uint(oid)].EndByte
 
 		log(fmt.Sprintf("Oid %d: Opening pipe %s", oid, currentPipe))
+		debugWriter, debugHandle, _ = debugGetRestoreFileWriter(currentPipe)
 		for {
 			writer, writeHandle, err = getRestorePipeWriter(currentPipe)
 			if err != nil {
@@ -275,6 +277,19 @@ func getRestoreDataReader(toc *toc.SegmentTOC, oidList []int) (*RestoreReader, e
 
 	return restoreReader, err
 }
+
+func debugGetRestoreFileWriter(currentPipe string) (*bufio.Writer, *os.File, error) {
+	fileName := fmt.Sprintf("%s_debugfile", currentPipe)
+	log("Writing debug file %s", fileName)
+	fileHandle, err := os.OpenFile(fileName, os.O_CREATE|unix.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, nil, err
+	}
+	fileWriter := bufio.NewWriter(struct{ io.WriteCloser }{fileHandle})
+
+	return fileWriter, fileHandle, nil
+}
+
 
 func getRestorePipeWriter(currentPipe string) (*bufio.Writer, *os.File, error) {
 	fileHandle, err := os.OpenFile(currentPipe, os.O_WRONLY|unix.O_NONBLOCK, os.ModeNamedPipe)

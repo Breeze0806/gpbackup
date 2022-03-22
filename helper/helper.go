@@ -32,6 +32,8 @@ var (
 	wasTerminated bool
 	writeHandle   *os.File
 	writer        *bufio.Writer
+	debugWriter   *bufio.Writer
+	debugHandle		*os.File
 	pipesMap      map[string]bool
 )
 
@@ -76,15 +78,17 @@ func DoHelper() {
 		switch sig	{
 		case unix.SIGINT:
 			gplog.Warn("Received an interrupt signal on segment %d, aborting", *content)
+			wasTerminated = true
 		case unix.SIGTERM:
 			gplog.Warn("Received a termination signal on segment %d, aborting", *content)
+			wasTerminated = true
 		case unix.SIGPIPE:
 			gplog.Warn("Received a broken pipe signal on segment %d, aborting", *content)
+			wasTerminated = true
 		case unix.SIGUSR1:
 			gplog.Warn("Received shutdown request on segment %d", *content)
 		}
 
-		wasTerminated = true
 		DoCleanup()
 		os.Exit(2)
 	}()
@@ -182,27 +186,35 @@ func getOidListFromFile() ([]int, error) {
 }
 
 func flushAndCloseRestoreWriter(pipeName string, oid int) error {
-	currentPipe := writeHandle.Name()
-	if writeHandle == nil && writer.Available() > 0 {
-		return errors.Errorf("pipe %s closed before data flushed", currentPipe)
-	}
 	if writer != nil {
 		if writer.Available() > 0 {
 			log("bytes remaining in pipe prior to writer.Flush(): %d", writer.Available())
-			err := writer.Flush()
+			err := debugWriter.Flush()
 			if err != nil {
-				return errors.Wrapf(err, "failed to flush pipe %s", currentPipe)
+				log("Failed to flush debugwriter")
 			}
+			err = writer.Flush()
+			if err != nil {
+				return errors.Wrapf(err, "failed to flush pipe %s", pipeName)
+			}
+
+			debugWriter = nil
 			writer = nil
-			log("Oid %d: Successfully flushed pipe %s", oid, currentPipe)
+			log("Oid %d: Successfully flushed pipe %s", oid, pipeName)
 		}	else {
-			log("Oid %d: No bytes available to flush from pipe %s", oid, currentPipe)
+			log("Oid %d: No bytes available to flush from pipe %s", oid, pipeName)
 		}
 	}
 	if writeHandle != nil {
+		if debugHandle != nil {
+			err := debugHandle.Close()
+			if err != nil {
+				log("Error closing debug file handle")
+			}
+		}
 		err := writeHandle.Close()
 		if err != nil {
-			return errors.Wrapf(err, "failed to close pipe handle %s", currentPipe)
+			return errors.Wrapf(err, "failed to close pipe handle %s", pipeName)
 		}
 		writeHandle = nil
 		log("Oid %d: Successfully closed pipe handle", oid)
