@@ -69,7 +69,7 @@ func DoHelper() {
 	InitializeGlobals()
 	// Initialize signal handler
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, unix.SIGINT, unix.SIGTERM, unix.SIGPIPE)
+	signal.Notify(signalChan, unix.SIGINT, unix.SIGTERM, unix.SIGPIPE, unix.SIGUSR1)
 	go func() {
 		sig := <-signalChan
 		fmt.Println() // Add newline after "^C" is printed
@@ -80,8 +80,10 @@ func DoHelper() {
 			gplog.Warn("Received a termination signal on segment %d, aborting", *content)
 		case unix.SIGPIPE:
 			gplog.Warn("Received a broken pipe signal on segment %d, aborting", *content)
+		case unix.SIGUSR1:
+			gplog.Warn("Received shutdown request on segment %d", *content)
 		}
-		
+
 		wasTerminated = true
 		DoCleanup()
 		os.Exit(2)
