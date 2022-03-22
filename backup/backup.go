@@ -367,7 +367,7 @@ func DoTeardown() {
 		fmt.Println(errStr)
 	}
 	errMsg := report.ParseErrorMessage(errStr)
-
+	utils.CleanUpHelperFilesOnAllHosts(globalCluster, globalFPInfo)
 	/*
 	 * Only create a report file if we fail after the cluster is initialized
 	 * and a backup directory exists in which to create the report file.
@@ -442,7 +442,6 @@ func DoCleanup() {
 				// Cleanup only if terminated or fataled
 				utils.CleanUpSegmentHelperProcesses(globalCluster, globalFPInfo, "backup")
 			}
-			utils.CleanUpHelperFilesOnAllHosts(globalCluster, globalFPInfo)
 		}
 	}
 	err := backupLockFile.Unlock()

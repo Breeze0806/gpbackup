@@ -579,6 +579,7 @@ func DoTeardown() {
 		fmt.Println(errStr)
 	}
 	errMsg := report.ParseErrorMessage(errStr)
+	utils.CleanUpHelperFilesOnAllHosts(globalCluster, globalFPInfo)
 
 	if globalFPInfo.Timestamp != "" {
 		_, statErr := os.Stat(globalFPInfo.GetDirForContent(-1))
@@ -658,7 +659,6 @@ func DoCleanup() {
 			if restoreFailed {
 				utils.CleanUpSegmentHelperProcesses(globalCluster, fpInfo, "restore")
 			}
-			utils.CleanUpHelperFilesOnAllHosts(globalCluster, fpInfo)
 		}
 	}
 
