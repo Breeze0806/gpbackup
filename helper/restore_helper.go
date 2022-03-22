@@ -112,7 +112,6 @@ func doRestoreAgent() error {
 			log(fmt.Sprintf("Oid %d: Creating pipe %s\n", oidList[i+*copyQueue], nextPipeToCreate))
 			err := createPipe(nextPipeToCreate)
 			if err != nil {
-				//log(fmt.Sprintf("Oid %d: Failed to create pipe %s\n", oidList[i+*copyQueue], nextPipeToCreate))
 				// In the case this error is hit it means we have lost the
 				// ability to create pipes normally, so hard quit even if
 				// --on-error-continue is given
@@ -200,14 +199,12 @@ func doRestoreAgent() error {
 		log(fmt.Sprintf("Oid %d: Attempt to delete pipe", oid))
 		errPipe := deletePipe(currentPipe)
 		if errPipe != nil {
-			logError("Oid %d: Pipe remove failed with error: %+v", oid, errPipe)
-			return errPipe
+			return errors.Wrapf(errPipe, "Oid %d: Error deleting pipe", oid)
 		}
 		log(fmt.Sprintf("Oid %d: Pipe Remove Succesful", oid))
 
 		if err != nil {
 			if *onErrorContinue {
-				logError(fmt.Sprintf("Oid %d: Error encountered: %v", oid, err))
 				lastError = err
 				err = nil
 				continue

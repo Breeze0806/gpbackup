@@ -95,8 +95,7 @@ func DoHelper() {
 		err = doRestoreAgent()
 	}
 	if err != nil {
-		fmt.Printf("%+v\n", err)
-		//logError(fmt.Sprintf("%v: %s", err, debug.Stack()))
+		logError("%+v", err)
 		handle, _ := utils.OpenFileForWrite(fmt.Sprintf("%s_error", *pipeFile))
 		_ = handle.Close()
 	}
@@ -151,11 +150,11 @@ func createPipe(pipe string) error {
 }
 
 func deletePipe(pipe string) error {
-	delete(pipesMap, pipe)
 	err := utils.RemoveFile(pipe)
 	if err != nil {
 		return err
 	}
+	delete(pipesMap, pipe)
 	return nil
 }
 
@@ -203,7 +202,6 @@ func flushAndCloseRestoreWriter(pipeName string, oid int) error {
 	if writeHandle != nil {
 		err := writeHandle.Close()
 		if err != nil {
-			//logError("Oid %d: Failed to close pipe handle", oid)
 			return errors.Wrapf(err, "failed to close pipe handle %s", currentPipe)
 		}
 		writeHandle = nil

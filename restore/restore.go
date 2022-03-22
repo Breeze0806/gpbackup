@@ -560,7 +560,7 @@ func DoTeardown() {
 			gplog.Error(fmt.Sprintf("%+v: %s", err, debug.Stack()))
 			gplog.SetErrorCode(2)
 		} else {
-			errStr = fmt.Sprintf("%v", err)
+			errStr = fmt.Sprintf("%+v", err)
 		}
 		restoreFailed = true
 	}

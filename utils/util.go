@@ -39,8 +39,7 @@ func RemoveFileIfExists(filename string) error {
 		gplog.Debug("File %s: Exists, Attempting Removal", baseFilename)
 		err := os.Remove(filename)
 		if err != nil {
-			//gplog.Error("File %s: Failed to remove. Error %s", baseFilename, err.Error())
-			return errors.Errorf("File %s: Failed to remove. Error %s", baseFilename)
+			return errors.Errorf("File %s: Failed to remove. Error %s", baseFilename, err)
 		}
 		gplog.Debug("File %s: Successfully removed", baseFilename)
 	} else {
@@ -51,16 +50,14 @@ func RemoveFileIfExists(filename string) error {
 }
 
 func RemoveFile(filename string) error {
-	baseFileName := path.Base(filename)
 	_, err := os.Stat(filename)
 	if err != nil {
-		return errors.Errorf("File %s: Removed by another process", baseFileName)
+		return err
 	}
 	err = os.Remove(filename)
 	if err != nil {
-		return errors.Errorf("File %s: Failed to remove.", baseFileName)
+		return err
 	}
-	gplog.Debug("File %s: Successfully removed", baseFileName)
 	return nil
 }
 
