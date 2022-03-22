@@ -631,7 +631,7 @@ func writeErrorTables(isMetadata bool) {
 func DoCleanup(restoreFailed bool) {
 	defer func() {
 		if err := recover(); err != nil {
-			gplog.Warn("Encountered error during cleanup: %v", err)
+			gplog.Warn("Encountered error during cleanup: %+v", err)
 		}
 		gplog.Verbose("Cleanup complete")
 		CleanupGroup.Done()

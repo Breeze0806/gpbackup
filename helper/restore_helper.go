@@ -141,6 +141,9 @@ func doRestoreAgent() error {
 						err = nil
 						goto LoopEnd
 					} else {
+						if wasTerminated {
+							return errors.New("Terminated due to user request")
+						}
 						// keep trying to open the pipe
 						time.Sleep(100 * time.Millisecond)
 					}
@@ -176,7 +179,11 @@ func doRestoreAgent() error {
 			// need to update the lastByte with the amount of bytes that was
 			// copied before it errored out
 			lastByte += uint64(bytesRead)
-			err = errors.Wrap(err, strings.Trim(errBuf.String(), "\x00"))
+			if errBuf.Len() > 0 {
+				err = errors.Wrap(err, strings.Trim(errBuf.String(), "\x00"))
+			} else {
+				err = errors.Wrap(err, "error copying data")
+			}
 			goto LoopEnd
 		}
 		lastByte = end
@@ -193,6 +200,7 @@ func doRestoreAgent() error {
 		log(fmt.Sprintf("Oid %d: Attempt to delete pipe", oid))
 		errPipe := deletePipe(currentPipe)
 		if errPipe != nil {
+			logError("Oid %d: Pipe remove failed with error: %+v", oid, errPipe)
 			return errPipe
 		}
 		log(fmt.Sprintf("Oid %d: Pipe Remove Succesful", oid))

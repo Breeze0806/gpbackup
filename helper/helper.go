@@ -149,12 +149,11 @@ func createPipe(pipe string) error {
 }
 
 func deletePipe(pipe string) error {
-	err := utils.RemoveFileIfExists(pipe)
+	delete(pipesMap, pipe)
+	err := utils.RemoveFile(pipe)
 	if err != nil {
 		return err
 	}
-
-	delete(pipesMap, pipe)
 	return nil
 }
 
@@ -188,7 +187,7 @@ func flushAndCloseRestoreWriter(pipeName string, oid int) error {
 	}
 	if writer != nil {
 		if writer.Available() > 0 {
-			log("bytes remaining in pipe %d", writer.Available())
+			log("bytes remaining in pipe prior to writer.Flush(): %d", writer.Available())
 			err := writer.Flush()
 			if err != nil {
 				return errors.Wrapf(err, "failed to flush pipe %s", currentPipe)

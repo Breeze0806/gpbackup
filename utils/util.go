@@ -50,6 +50,20 @@ func RemoveFileIfExists(filename string) error {
 	return nil
 }
 
+func RemoveFile(filename string) error {
+	baseFileName := path.Base(filename)
+	_, err := os.Stat(filename)
+	if err != nil {
+		return errors.Errorf("File %s: Removed by another process", baseFileName)
+	}
+	err = os.Remove(filename)
+	if err != nil {
+		return errors.Errorf("File %s: Failed to remove.", baseFileName)
+	}
+	gplog.Debug("File %s: Successfully removed", baseFileName)
+	return nil
+}
+
 func OpenFileForWrite(filename string) (*os.File, error) {
 	return os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 }
