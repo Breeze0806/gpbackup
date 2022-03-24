@@ -79,42 +79,8 @@ test_backup_and_restore_with_plugin() {
         exit 1
     fi
 
-    # if replication was off during backup, run gpbackup_manager replicate_backup to test replication
-    if [[ "$plugin" == *gpbackup_ddboost_plugin ]] && [[ "$plugin_config" == *ddboost_config.yaml ]]; then
-        echo
-        print_header "GPBACKUP_MANAGER replicate-backup [${timestamp}])"
-        print_time_exec "gpbackup_manager replicate-backup $timestamp --plugin-config $config &> $log_file"
-
-        if [ ! $? -eq 0 ]; then
-            echo "gpbackup_manager replicate-backup failed."
-            echo
-            cat $log_file
-            echo
-            exit 1
-        fi
-    fi
-
-    # Run gprestore and check for error. If gprestore failed, call
-    # plugin delete_backup to clean up and then exit with error.
-    print_header "GPRESTORE $test_db (flags: [${restore_flags}])"
-    print_time_exec "gprestore --quiet --timestamp $timestamp --plugin-config $config --create-db --redirect-db restoredb $restore_flags &> $log_file"
-
-    if [ ! $? -eq 0 ]; then
-        echo "gprestore failed. Check gprestore log file in ~/gpAdminLogs for details."
-        $plugin delete_backup $config $timestamp
-        echo
-        cat $log_file
-        echo
-        exit 1
-    fi
-
     # drop restoredb to allow next caller to create it
     dropdb restoredb
-
-    # replace the encrypt key file to its proper location
-    if [ -f "/tmp/.encrypt_saved" ] ; then
-        mv /tmp/.encrypt_saved $MASTER_DATA_DIRECTORY/.encrypt
-    fi
 
     # Call plugin delete_backup to clean up. This step is important so
     # that the backup location doesn't fill up and run out of disk
@@ -134,22 +100,15 @@ test_backup_and_restore_with_plugin() {
 # ----------------------------------------------
 test_db=tpchdb
 restore_filter="--include-table public.lineitem_100"
-#test_backup_and_restore_with_plugin "$plugin_config" "" "--jobs=4"
-test_backup_and_restore_with_plugin "$plugin_config" "" "$restore_filter --jobs=4"
+test_backup_and_restore_with_plugin "$plugin_config" "--no-compression" ""
+test_backup_and_restore_with_plugin "$plugin_config" "--no-compression --jobs=4" ""
+test_backup_and_restore_with_plugin "$plugin_config" "--no-compression --jobs=8" ""
+test_backup_and_restore_with_plugin "$plugin_config" "--no-compression --jobs=16" ""
+test_backup_and_restore_with_plugin "$plugin_config" "--no-compression --jobs=32" ""
+test_backup_and_restore_with_plugin "$plugin_config" "--jobs=8" ""
 
-if [[ "$plugin" == *gpbackup_s3_plugin ]]; then
-  test_backup_and_restore_with_plugin "$plugin_config" "--single-data-file" "$restore_filter"
-fi
-
-test_backup_and_restore_with_plugin "$plugin_config" "--single-data-file --no-compression" "$restore_filter"
-test_backup_and_restore_with_plugin "$plugin_config" "--single-data-file --copy-queue-size 4 --no-compression" "--copy-queue-size 4"
-if [[ "$plugin" == *gpbackup_ddboost_plugin ]]; then
-  echo
-  echo "DISABLED restore_subset"
-  cp $plugin_config ${plugin_config}_nofilter
-  echo "  restore_subset: \"off\"" >> ${plugin_config}_nofilter
-  test_backup_and_restore_with_plugin "${plugin_config}_nofilter" "--single-data-file --no-compression" "$restore_filter"
-fi
+test_backup_and_restore_with_plugin "$plugin_config" "--single-data-file --no-compression" ""
+test_backup_and_restore_with_plugin "$plugin_config" "--single-data-file" ""
 
 
 # ----------------------------------------------
