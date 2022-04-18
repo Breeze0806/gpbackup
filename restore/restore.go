@@ -83,6 +83,8 @@ func DoSetup() {
 		InitializeBackupConfig()
 	}
 
+	ValidateSafeToResizeCluster()
+
 	gplog.Info("gpbackup version = %s", backupConfig.BackupVersion)
 	gplog.Info("gprestore version = %s", GetVersion())
 	gplog.Info("Greenplum Database Version = %s", connectionPool.Version.VersionString)
@@ -138,6 +140,7 @@ func DoRestore() {
 	isDataOnly := backupConfig.DataOnly || MustGetFlagBool(options.DATA_ONLY)
 	isMetadataOnly := backupConfig.MetadataOnly || MustGetFlagBool(options.METADATA_ONLY)
 	isIncremental := MustGetFlagBool(options.INCREMENTAL)
+	isClusterResize := MustGetFlagBool(options.RESIZE_CLUSTER)
 
 	if isIncremental {
 		verifyIncrementalState()
@@ -159,7 +162,9 @@ func DoRestore() {
 			if !backupConfig.SingleDataFile {
 				backupFileCount = len(globalTOC.DataEntries)
 			}
-			VerifyBackupFileCountOnSegments(backupFileCount)
+			if !isClusterResize {
+				VerifyBackupFileCountOnSegments(backupFileCount)
+			}
 		}
 		totalTablesRestored, filteredDataEntries = restoreData()
 	}

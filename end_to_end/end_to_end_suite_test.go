@@ -15,8 +15,11 @@ import (
 	"testing"
 	"time"
 
+<<<<<<< HEAD
 	"golang.org/x/sys/unix"
 
+=======
+>>>>>>> Allow backups to be restored to a larger cluster
 	"github.com/blang/semver"
 	"github.com/greenplum-db/gp-common-go-libs/cluster"
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
@@ -147,6 +150,14 @@ func assertDataRestored(conn *dbconn.DBConn, tableToTupleCount map[string]int) {
 			Fail(fmt.Sprintf("Expected:\n\t%s rows to have been restored into table %s\nActual:\n\t%s rows were restored", strconv.Itoa(expectedNumTuples), tableName, actualTupleCount))
 		}
 	}
+}
+
+func assertSegmentDataRestored(contentID int, tableName string, rows int) {
+	segment := backupCluster.ByContent[contentID]
+	port := segment[0].Port
+	segConn := testutils.SetupTestDBConnSegment("restoredb", port)
+	defer segConn.Close()
+	assertDataRestored(segConn, map[string]int{tableName: rows})
 }
 
 type PGClassStats struct {
@@ -2261,5 +2272,108 @@ var _ = Describe("backup and restore end to end tests", func() {
 		output, _ := cmd.CombinedOutput()
 		stdout := string(output)
 		Expect(stdout).To(ContainSubstring("Backup completed successfully"))
+	Describe("Restore to a different-sized cluster", func() {
+		// The backups for these tests were taken on GPDB version 6.20.3+dev.4.g9a08259bd1 build dev.
+		// No flags were used beyond --backup-dir, unless otherwise noted below.
+		BeforeEach(func() {
+			testhelper.AssertQueryRuns(backupConn, "CREATE ROLE testrole;")
+		})
+		AfterEach(func() {
+			testhelper.AssertQueryRuns(restoreConn, fmt.Sprintf("REASSIGN OWNED BY testrole TO %s;", backupConn.User))
+			testhelper.AssertQueryRuns(restoreConn, "DROP ROLE testrole;")
+		})
+		It("Can backup a 2-segment cluster and restore to a 3-segment cluster", func() {
+			command := exec.Command("tar", "-xzf", "resources/2-segment-db.tar.gz", "-C", backupDir)
+			mustRunCommand(command)
+
+			defer testhelper.AssertQueryRuns(restoreConn, `DROP TABLE IF EXISTS public.foo;`)
+
+			gprestoreCmd := exec.Command(gprestorePath,
+				"--timestamp", "20220415152858",
+				"--redirect-db", "restoredb",
+				"--backup-dir", path.Join(backupDir, "2-segment-db"),
+				"--resize-cluster",
+				"--on-error-continue")
+			_, err := gprestoreCmd.CombinedOutput()
+			Expect(err).ToNot(HaveOccurred())
+
+			assertRelationsCreated(restoreConn, 1)
+			assertDataRestored(restoreConn, map[string]int{
+				"public.foo": 100})
+
+			// For the purposes of this test and the one below, we happen to know that redistribution will result in
+			// 38 rows on content 0, 37 on content 1, and 25 on content 2 when redistributing the series 1 to 100 on
+			// a 3-segment cluster.
+			assertSegmentDataRestored(0, "public.foo", 38)
+			assertSegmentDataRestored(1, "public.foo", 37)
+			assertSegmentDataRestored(2, "public.foo", 25)
+		})
+		// TODO: Larger-to-smaller restores are disabled for now
+		// It("Can backup a 5-segment cluster and restore to a 3-segment cluster", func() {
+		It("Refuses to backup a 5-segment cluster and restore to a 3-segment cluster", func() {
+			command := exec.Command("tar", "-xzf", "resources/5-segment-db.tar.gz", "-C", backupDir)
+			mustRunCommand(command)
+
+			defer testhelper.AssertQueryRuns(restoreConn, `DROP TABLE IF EXISTS public.foo;`)
+
+			gprestoreCmd := exec.Command(gprestorePath,
+				"--timestamp", "20220415160842",
+				"--redirect-db", "restoredb",
+				"--backup-dir", path.Join(backupDir, "5-segment-db"),
+				"--resize-cluster",
+				"--on-error-continue")
+			output, err := gprestoreCmd.CombinedOutput()
+			// TODO: Replace the following with the commented-out logic when larger-to-smaller restores are re-enabled
+			Expect(err).To(HaveOccurred())
+			Expect(string(output)).To(ContainSubstring("Restoring a backup to a cluster with fewer segments is not supported at this time"))
+			/*
+				gprestoreCmd := exec.Command(gprestorePath,
+					"--timestamp", "20220415160842",
+					"--redirect-db", "restoredb",
+					"--backup-dir", path.Join(backupDir, "5-segment-db"),
+					"--resize-cluster",
+					"--on-error-continue")
+				_, err := gprestoreCmd.CombinedOutput()
+				Expect(err).ToNot(HaveOccurred())
+
+				assertRelationsCreated(restoreConn, 1)
+				assertDataRestored(restoreConn, map[string]int{
+					"public.foo": 100})
+
+				// See comment in above test regarding testing the redistribution of data in these two test cases.
+				assertSegmentDataRestored(0, "public.foo", 38)
+				assertSegmentDataRestored(1, "public.foo", 37)
+				assertSegmentDataRestored(2, "public.foo", 25)
+			*/
+		})
+		It("Will not restore to a different-size cluster if the SegmentCount of the backup is unknown", func() {
+			// This backup set is identical to the 5-segment-db-tar.gz backup set, except that the
+			// segmentcount parameter was removed from the config file in the master data directory.
+			command := exec.Command("tar", "-xzf", "resources/no-segment-count-db.tar.gz", "-C", backupDir)
+			mustRunCommand(command)
+
+			gprestoreCmd := exec.Command(gprestorePath,
+				"--timestamp", "20220415160842",
+				"--redirect-db", "restoredb",
+				"--backup-dir", path.Join(backupDir, "5-segment-db"),
+				"--resize-cluster",
+				"--on-error-continue")
+			output, err := gprestoreCmd.CombinedOutput()
+			Expect(err).To(HaveOccurred())
+			Expect(string(output)).To(MatchRegexp("Segment count for backup with timestamp [0-9]+ is unknown, cannot restore using --resize-cluster flag"))
+		})
+		It("Will not restore to a different-size cluster without the approprate flag", func() {
+			command := exec.Command("tar", "-xzf", "resources/5-segment-db.tar.gz", "-C", backupDir)
+			mustRunCommand(command)
+
+			gprestoreCmd := exec.Command(gprestorePath,
+				"--timestamp", "20220415160842",
+				"--redirect-db", "restoredb",
+				"--backup-dir", path.Join(backupDir, "5-segment-db"),
+				"--on-error-continue")
+			output, err := gprestoreCmd.CombinedOutput()
+			Expect(err).To(HaveOccurred())
+			Expect(string(output)).To(ContainSubstring("Cannot restore a backup taken on a cluster with 5 segments to a cluster with 3 segments unless the --resize-cluster flag is used."))
+		})
 	})
 })

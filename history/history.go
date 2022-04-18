@@ -32,6 +32,7 @@ type BackupConfig struct {
 	CompressionType       string
 	DatabaseName          string
 	DatabaseVersion       string
+	SegmentCount          int
 	DataOnly              bool
 	DateDeleted           string
 	ExcludeRelations      []string

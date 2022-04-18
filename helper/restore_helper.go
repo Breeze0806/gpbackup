@@ -77,8 +77,17 @@ func (r *RestoreReader) copyData(num int64) (int64, error) {
 }
 
 func doRestoreAgent() error {
-	segmentTOC := toc.NewSegmentTOC(*tocFile)
-	tocEntries := segmentTOC.DataEntries
+	// The ToC file is not guaranteed to exist, as when we perform a resize restore
+	// there is no ToC file for any segments in the destination cluster that don't
+	// have a corresponding segment in the origin cluster.  Thus, if we can't find
+	// one, we assume that no data file exists for that segment either (as if that
+	// file was supposed to exist its absence would have been caught by the initial
+	// file checks in gprestore) and no COPY will expect it, and exit immediately.
+	tocFileExists := utils.FileExists(*tocFile)
+
+	var segmentTOC *toc.SegmentTOC
+	var tocEntries map[uint]toc.SegmentDataEntry
+	var reader *RestoreReader
 
 	var lastByte uint64
 	var bytesRead int64
@@ -91,11 +100,16 @@ func doRestoreAgent() error {
 		return err
 	}
 
-	reader, err := getRestoreDataReader(segmentTOC, oidList)
-	if err != nil {
-		return err
+	if tocFileExists {
+		segmentTOC = toc.NewSegmentTOC(*tocFile)
+		tocEntries = segmentTOC.DataEntries
+
+		reader, err = getRestoreDataReader(segmentTOC, oidList)
+		if err != nil {
+			return err
+		}
+		log(fmt.Sprintf("Using reader type: %s", reader.readerType))
 	}
-	log(fmt.Sprintf("Using reader type: %s", reader.readerType))
 
 	preloadCreatedPipes(oidList, *copyQueue)
 
@@ -118,8 +132,11 @@ func doRestoreAgent() error {
 			}
 		}
 
-		start = tocEntries[uint(oid)].StartByte
-		end = tocEntries[uint(oid)].EndByte
+		if tocFileExists {
+			start = tocEntries[uint(oid)].StartByte
+			end = tocEntries[uint(oid)].EndByte
+			log(fmt.Sprintf("Start %d, end %d", start, end))
+		}
 
 		log(fmt.Sprintf("Opening pipe for oid %d: %s", oid, currentPipe))
 		for {
@@ -158,24 +175,26 @@ func doRestoreAgent() error {
 			}
 		}
 
-		log(fmt.Sprintf("Data Reader - Start Byte: %d; End Byte: %d; Last Byte: %d", start, end, lastByte))
-		err = reader.positionReader(start - lastByte)
-		if err != nil {
-			return err
-		}
+		if tocFileExists {
+			log(fmt.Sprintf("Data Reader - Start Byte: %d; End Byte: %d; Last Byte: %d", start, end, lastByte))
+			err = reader.positionReader(start - lastByte)
+			if err != nil {
+				return err
+			}
 
-		log(fmt.Sprintf("Restoring table with oid %d", oid))
-		bytesRead, err = reader.copyData(int64(end - start))
-		if err != nil {
-			// In case COPY FROM or copyN fails in the middle of a load. We
-			// need to update the lastByte with the amount of bytes that was
-			// copied before it errored out
-			lastByte += uint64(bytesRead)
-			err = errors.Wrap(err, strings.Trim(errBuf.String(), "\x00"))
-			goto LoopEnd
+			log(fmt.Sprintf("Restoring table with oid %d", oid))
+			bytesRead, err = reader.copyData(int64(end - start))
+			if err != nil {
+				// In case COPY FROM or copyN fails in the middle of a load. We
+				// need to update the lastByte with the amount of bytes that was
+				// copied before it errored out
+				lastByte += uint64(bytesRead)
+				err = errors.Wrap(err, strings.Trim(errBuf.String(), "\x00"))
+				goto LoopEnd
+			}
+			lastByte = end
+			log(fmt.Sprintf("Copied %d bytes into the pipe", bytesRead))
 		}
-		lastByte = end
-		log(fmt.Sprintf("Copied %d bytes into the pipe", bytesRead))
 
 		log(fmt.Sprintf("Closing pipe for oid %d: %s", oid, currentPipe))
 		err = flushAndCloseRestoreWriter()

@@ -393,6 +393,7 @@ func DoTeardown() {
 				backupReport.BackupConfig.Status = history.BackupStatusSucceed
 			}
 			backupReport.ConstructBackupParamsString()
+			backupReport.BackupConfig.SegmentCount = len(globalCluster.ContentIDs) - 1
 			err := history.WriteBackupHistory(historyFilename, &backupReport.BackupConfig)
 			if err != nil {
 				gplog.Error(fmt.Sprintf("%v", err))
@@ -601,6 +602,6 @@ func getTableLocks(table Table) []TableLocks {
 func logTableLocks(table Table, whichConn int) {
 	locks := getTableLocks(table)
 	jsonData, _ := json.Marshal(&locks)
-	gplog.Warn("Worker %d could not acquire AccessShareLock for table %s. Terminating worker and deferring table to main worker thread.",	whichConn,table.FQN())
+	gplog.Warn("Worker %d could not acquire AccessShareLock for table %s. Terminating worker and deferring table to main worker thread.",   whichConn, table.FQN())
 	gplog.Warn("Locks held on table %s: %s", table.FQN(), jsonData)
 }
