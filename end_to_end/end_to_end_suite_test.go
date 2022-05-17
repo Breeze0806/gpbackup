@@ -2270,6 +2270,9 @@ var _ = Describe("backup and restore end to end tests", func() {
 		Expect(stdout).To(ContainSubstring("Backup completed successfully"))
 	})
 	Describe("Restore to a different-sized cluster", func() {
+		if useOldBackupVersion {
+			Skip("This test is not needed for old backup versions")
+		}
 		// The backups for these tests were taken on GPDB version 6.20.3+dev.4.g9a08259bd1 build dev.
 		// No flags were used beyond --backup-dir, unless otherwise noted below.
 		BeforeEach(func() {
@@ -2308,6 +2311,9 @@ var _ = Describe("backup and restore end to end tests", func() {
 		// TODO: Larger-to-smaller restores are disabled for now
 		// It("Can backup a 5-segment cluster and restore to a 3-segment cluster", func() {})
 		It("Refuses to backup a 5-segment cluster and restore to a 3-segment cluster", func() {
+			if useOldBackupVersion {
+				Skip("This test is not needed for old backup versions")
+			}
 			command := exec.Command("tar", "-xzf", "resources/5-segment-db.tar.gz", "-C", backupDir)
 			mustRunCommand(command)
 
@@ -2344,6 +2350,9 @@ var _ = Describe("backup and restore end to end tests", func() {
 			*/
 		})
 		It("Will not restore to a different-size cluster if the SegmentCount of the backup is unknown", func() {
+			if useOldBackupVersion {
+				Skip("This test is not needed for old backup versions")
+			}
 			// This backup set is identical to the 5-segment-db-tar.gz backup set, except that the
 			// segmentcount parameter was removed from the config file in the master data directory.
 			command := exec.Command("tar", "-xzf", "resources/no-segment-count-db.tar.gz", "-C", backupDir)
