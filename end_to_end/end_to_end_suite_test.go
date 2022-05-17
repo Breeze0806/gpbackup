@@ -14,12 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-<<<<<<< HEAD
 	"golang.org/x/sys/unix"
 
-=======
->>>>>>> Allow backups to be restored to a larger cluster
 	"github.com/blang/semver"
 	"github.com/greenplum-db/gp-common-go-libs/cluster"
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
@@ -2272,6 +2268,7 @@ var _ = Describe("backup and restore end to end tests", func() {
 		output, _ := cmd.CombinedOutput()
 		stdout := string(output)
 		Expect(stdout).To(ContainSubstring("Backup completed successfully"))
+	})
 	Describe("Restore to a different-sized cluster", func() {
 		// The backups for these tests were taken on GPDB version 6.20.3+dev.4.g9a08259bd1 build dev.
 		// No flags were used beyond --backup-dir, unless otherwise noted below.
@@ -2309,7 +2306,7 @@ var _ = Describe("backup and restore end to end tests", func() {
 			assertSegmentDataRestored(2, "public.foo", 25)
 		})
 		// TODO: Larger-to-smaller restores are disabled for now
-		// It("Can backup a 5-segment cluster and restore to a 3-segment cluster", func() {
+		// It("Can backup a 5-segment cluster and restore to a 3-segment cluster", func() {})
 		It("Refuses to backup a 5-segment cluster and restore to a 3-segment cluster", func() {
 			command := exec.Command("tar", "-xzf", "resources/5-segment-db.tar.gz", "-C", backupDir)
 			mustRunCommand(command)
