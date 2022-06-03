@@ -35,7 +35,7 @@ FLY_CMD ?= fly
 depend :
 	go mod download
 
-$(GINKGO) : # v1.14.0 is compatible with centos6 default gcc version
+$(GINKGO) :
 	go install github.com/onsi/ginkgo/v2/ginkgo@latest
 
 $(GOIMPORTS) :
