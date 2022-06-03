@@ -22,7 +22,12 @@ func VerifyBackupDirectoriesExistOnAllHosts() {
 	if MustGetFlagString(options.PLUGIN_CONFIG) == "" || backupConfig.SingleDataFile {
 		contentMap := GetResizeContentMap()
 		remoteOutput := globalCluster.GenerateAndExecuteCommand("Verifying backup directories exist", cluster.ON_SEGMENTS, func(contentID int) string {
-			return fmt.Sprintf("test -d %s", globalFPInfo.GetDirForContent(contentMap[contentID]))
+			destContent, exists := contentMap[contentID]
+			if exists {
+				return fmt.Sprintf("test -d %s", globalFPInfo.GetDirForContent(destContent))
+			} else { // Don't check for directories for contents that aren't part of the backup set
+				return ""
+			}
 		})
 		globalCluster.CheckClusterError(remoteOutput, "Backup directories missing or inaccessible", func(contentID int) string {
 			return fmt.Sprintf("Backup directory %s missing or inaccessible", globalFPInfo.GetDirForContent(contentID))
