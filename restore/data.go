@@ -288,7 +288,7 @@ func restoreDataFromTimestamp(fpInfo filepath.FilePathInfo, dataEntries []toc.Ma
 			oidList[i] = fmt.Sprintf("%d", entry.Oid)
 		}
 		utils.WriteOidListToSegments(oidList, globalCluster, fpInfo)
-		initialPipes := CreateInitialSegmentPipes(oidList, globalCluster, connectionPool,fpInfo)
+		initialPipes := CreateInitialSegmentPipes(oidList, globalCluster, connectionPool, fpInfo)
 		if wasTerminated {
 			return 0
 		}
@@ -296,7 +296,7 @@ func restoreDataFromTimestamp(fpInfo filepath.FilePathInfo, dataEntries []toc.Ma
 		if len(opts.IncludedRelations) > 0 || len(opts.ExcludedRelations) > 0 || len(opts.IncludedSchemas) > 0 || len(opts.ExcludedSchemas) > 0 {
 			isFilter = true
 		}
-		utils.StartGpbackupHelpers(globalCluster, fpInfo, "--restore-agent", MustGetFlagString(options.PLUGIN_CONFIG), "", MustGetFlagBool(options.ON_ERROR_CONTINUE), isFilter, &wasTerminated, initialPipes)
+		utils.StartGpbackupHelpers(globalCluster, fpInfo, "--restore-agent", MustGetFlagString(options.PLUGIN_CONFIG), "", MustGetFlagBool(options.ON_ERROR_CONTINUE), isFilter, &wasTerminated, initialPipes, resizeContentMap)
 	}
 	/*
 	 * We break when an interrupt is received and rely on

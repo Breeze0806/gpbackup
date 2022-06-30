@@ -53,6 +53,7 @@ var (
 	tocFile          *string
 	isFiltered       *bool
 	copyQueue        *int
+	isResizeRestore  *bool
 )
 
 func DoHelper() {
@@ -100,6 +101,7 @@ func InitializeGlobals() {
 	tocFile = flag.String("toc-file", "", "Absolute path to the table of contents file")
 	isFiltered = flag.Bool("with-filters", false, "Used with table/schema filters")
 	copyQueue = flag.Int("copy-queue-size", 1, "Used to know how many COPIES are being queued up")
+	isResizeRestore = flag.Bool("resize-restore", false, "Used with resize restore")
 
 	if *onErrorContinue && !*restoreAgent {
 		fmt.Printf("--on-error-continue flag can only be used with --restore-agent flag")
@@ -123,7 +125,7 @@ func InitializeSignalHandler() {
 		go func() {
 			sig := <-signalChan
 			fmt.Println() // Add newline after "^C" is printed
-			switch sig	{
+			switch sig {
 			case unix.SIGINT:
 				gplog.Warn("Received an interrupt signal on segment %d: aborting", *content)
 				terminatedChan <- true
@@ -152,6 +154,7 @@ func InitializeSignalHandler() {
 		}
 	}
 }
+
 /*
  * Shared functions
  */

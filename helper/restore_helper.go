@@ -76,18 +76,21 @@ func (r *RestoreReader) copyData(num int64) (int64, error) {
 	return bytesRead, err
 }
 
-func doRestoreAgent() error {
-	// The ToC file is not guaranteed to exist, as when we perform a resize restore
-	// there is no ToC file for any segments in the destination cluster that don't
-	// have a corresponding segment in the origin cluster.  Thus, if we can't find
-	// one, we assume that no data file exists for that segment either (as if that
-	// file was supposed to exist its absence would have been caught by the initial
-	// file checks in gprestore) and no COPY will expect it, and exit immediately.
-	tocFileExists := utils.FileExists(*tocFile)
+func (r *RestoreReader) copyAllData() (int64, error) {
+	var bytesRead int64
+	var err error
+	switch r.readerType {
+	case SEEKABLE:
+		bytesRead, err = io.Copy(writer, r.seekReader)
+	case NONSEEKABLE, SUBSET:
+		bytesRead, err = io.Copy(writer, r.bufReader)
+	}
+	return bytesRead, err
+}
 
+func doRestoreAgent() error {
 	var segmentTOC *toc.SegmentTOC
 	var tocEntries map[uint]toc.SegmentDataEntry
-	var reader *RestoreReader
 
 	var lastByte uint64
 	var bytesRead int64
@@ -100,16 +103,16 @@ func doRestoreAgent() error {
 		return err
 	}
 
-	if tocFileExists {
+	if !*isResizeRestore {
 		segmentTOC = toc.NewSegmentTOC(*tocFile)
 		tocEntries = segmentTOC.DataEntries
-
-		reader, err = getRestoreDataReader(segmentTOC, oidList)
-		if err != nil {
-			return err
-		}
-		log(fmt.Sprintf("Using reader type: %s", reader.readerType))
 	}
+
+	reader, err := getRestoreDataReader(segmentTOC, oidList)
+	if err != nil {
+		return err
+	}
+	log(fmt.Sprintf("Using reader type: %s", reader.readerType))
 
 	preloadCreatedPipes(oidList, *copyQueue)
 
@@ -132,10 +135,9 @@ func doRestoreAgent() error {
 			}
 		}
 
-		if tocFileExists {
+		if !*isResizeRestore {
 			start = tocEntries[uint(oid)].StartByte
 			end = tocEntries[uint(oid)].EndByte
-			log(fmt.Sprintf("Start %d, end %d", start, end))
 		}
 
 		log(fmt.Sprintf("Opening pipe for oid %d: %s", oid, currentPipe))
@@ -175,26 +177,31 @@ func doRestoreAgent() error {
 			}
 		}
 
-		if tocFileExists {
+		if !*isResizeRestore {
 			log(fmt.Sprintf("Data Reader - Start Byte: %d; End Byte: %d; Last Byte: %d", start, end, lastByte))
 			err = reader.positionReader(start - lastByte)
 			if err != nil {
 				return err
 			}
-
-			log(fmt.Sprintf("Restoring table with oid %d", oid))
-			bytesRead, err = reader.copyData(int64(end - start))
-			if err != nil {
-				// In case COPY FROM or copyN fails in the middle of a load. We
-				// need to update the lastByte with the amount of bytes that was
-				// copied before it errored out
-				lastByte += uint64(bytesRead)
-				err = errors.Wrap(err, strings.Trim(errBuf.String(), "\x00"))
-				goto LoopEnd
-			}
-			lastByte = end
-			log(fmt.Sprintf("Copied %d bytes into the pipe", bytesRead))
 		}
+
+		log(fmt.Sprintf("Restoring table with oid %d", oid))
+		if *isResizeRestore {
+			bytesRead, err = reader.copyAllData()
+		} else {
+			bytesRead, err = reader.copyData(int64(end - start))
+		}
+		if err != nil {
+			// In case COPY FROM or copyN fails in the middle of a load. We
+			// need to update the lastByte with the amount of bytes that was
+			// copied before it errored out
+			lastByte += uint64(bytesRead)
+			err = errors.Wrap(err, strings.Trim(errBuf.String(), "\x00"))
+			goto LoopEnd
+		}
+
+		lastByte = end
+		log(fmt.Sprintf("Copied %d bytes into the pipe", bytesRead))
 
 		log(fmt.Sprintf("Closing pipe for oid %d: %s", oid, currentPipe))
 		err = flushAndCloseRestoreWriter()
@@ -307,7 +314,8 @@ func startRestorePluginCommand(toc *toc.SegmentTOC, oidList []int) (io.Reader, b
 		return nil, false, err
 	}
 	cmdStr := ""
-	if pluginConfig.CanRestoreSubset() && *isFiltered && !strings.HasSuffix(*dataFile, ".gz") && !strings.HasSuffix(*dataFile, ".zst") {
+	// TODO confirm that "toc != nil" is appropriate
+	if toc != nil && pluginConfig.CanRestoreSubset() && *isFiltered && !strings.HasSuffix(*dataFile, ".gz") && !strings.HasSuffix(*dataFile, ".zst") {
 		offsetsFile, _ := ioutil.TempFile("/tmp", "gprestore_offsets_")
 		defer func() {
 			offsetsFile.Close()

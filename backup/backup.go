@@ -284,9 +284,9 @@ func backupData(tables []Table) {
 			compressStr = " --compression-level 0"
 		}
 		initialPipes := CreateInitialSegmentPipes(oidList, globalCluster, connectionPool, globalFPInfo)
-		// Do not pass through the --on-error-continue flag because it does not apply to gpbackup
+		// Do not pass through the --on-error-continue flag or the resizeClusterMap because neither apply to gpbackup
 		utils.StartGpbackupHelpers(globalCluster, globalFPInfo, "--backup-agent",
-			MustGetFlagString(options.PLUGIN_CONFIG), compressStr, false, false, &wasTerminated, initialPipes)
+			MustGetFlagString(options.PLUGIN_CONFIG), compressStr, false, false, &wasTerminated, initialPipes, nil)
 	}
 	gplog.Info("Writing data to file")
 	var rowsCopiedMaps []map[uint32]int64
@@ -602,6 +602,6 @@ func getTableLocks(table Table) []TableLocks {
 func logTableLocks(table Table, whichConn int) {
 	locks := getTableLocks(table)
 	jsonData, _ := json.Marshal(&locks)
-	gplog.Warn("Worker %d could not acquire AccessShareLock for table %s. Terminating worker and deferring table to main worker thread.",   whichConn, table.FQN())
+	gplog.Warn("Worker %d could not acquire AccessShareLock for table %s. Terminating worker and deferring table to main worker thread.", whichConn, table.FQN())
 	gplog.Warn("Locks held on table %s: %s", table.FQN(), jsonData)
 }
